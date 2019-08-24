@@ -12,7 +12,7 @@ include(_defines.pri)
 QT += core
 QT -= gui
 
-TARGET = vector
+TARGET = set
 CONFIG -= app_bundle
 
 TEMPLATE = lib
