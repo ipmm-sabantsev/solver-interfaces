@@ -9,6 +9,7 @@ const double EPS = 1e-8;
 namespace {
 class Set_0 : public ISet
 {
+public:
     int getId() const;
     int put(IVector const* const element);
     int get(unsigned int index, IVector*& p_element) const;
@@ -147,11 +148,11 @@ int Set_0::remove(unsigned int index)
 
     for (int i = 0; i < m_ptr_iterators.size(); i++)
     {
-        if (m_ptr_iterators[i]->_pos > index)
+        if (m_ptr_iterators[i]->m_pos > index)
         {
-            m_ptr_iterators[i]->_pos--;
+            m_ptr_iterators[i]->m_pos--;
         }
-        else if (m_ptr_iterators[i]->_pos == index)
+        else if (m_ptr_iterators[i]->m_pos == index)
         {
             deleteIterator(m_ptr_iterators[i]);
         }
@@ -215,7 +216,7 @@ Set_0::IIterator* Set_0::begin()
         LOG("ERR: Iterator of empty set");
         return nullptr;
     }
-    Set_0::Iterator_0* iterator = new(std::nothrow) Set_0::Iterator_0::Iterator_0(this, 0);
+    Iterator_0* iterator = new(std::nothrow) Iterator_0(this, 0);
     if (!iterator)
     {
         LOG("ERR: Not enough memory");
@@ -225,14 +226,14 @@ Set_0::IIterator* Set_0::begin()
     return iterator;
 }
 
-Set_0::Iterator_0* Set_0::end()
+Set_0::IIterator* Set_0::end()
 {
     if (m_ptr_points.size() == 0)
     {
         LOG("ERR: Iterator of empty set");
         return nullptr;
     }
-    Set_0::Iterator_0* iterator = new(std::nothrow) Set_0::Iterator_0::Iterator_0(this, m_ptr_points.size() - 1);
+    Iterator_0* iterator = new(std::nothrow) Iterator_0(this, m_ptr_points.size() - 1);
     if (!iterator)
     {
         LOG("ERR: Not enough memory");
@@ -276,8 +277,6 @@ int Set_0::deleteIterator(IIterator * pIter)
         return ERR_OK;
     }
 }
-
-
 
 int Set_0::getByIterator(IIterator const* pIter, IVector*& p_element) const
 {
