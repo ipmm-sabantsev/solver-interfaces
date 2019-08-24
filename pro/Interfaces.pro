@@ -25,7 +25,8 @@ INCLUDEPATH += \
 
 SOURCES += \
     ../src/main.cpp \
-    ../src/IVector_Impl.cpp
+    ../src/IVector_Impl.cpp \
+    ../src/ISet_Impl.cpp
 
 HEADERS += \
     $$INC_ROOT/IBrocker.h \
