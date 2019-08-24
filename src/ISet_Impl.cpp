@@ -242,11 +242,96 @@ Set_0::Iterator_0* Set_0::end()
     return iterator;
 }
 
-int SetImpl::findIterator(ISet::IIterator const * pIter) const {
-    for (int i = 0; i < _ptr_iterators.size(); i++) {
-        if (dynamic_cast<ISet::IIterator*>(_ptr_iterators[i]) == pIter) {
+int Set_0::findIterator(ISet::IIterator const * pIter) const
+{
+    for (int i = 0; i < m_ptr_iterators.size(); i++)
+    {
+        if (dynamic_cast<ISet::IIterator*>(m_ptr_iterators[i]) == pIter)
+        {
             return i;
         }
     }
     return -1;
 }
+
+int Set_0::deleteIterator(IIterator * pIter)
+{
+    if (!pIter)
+    {
+        LOG("ERR: Incorrect argument");
+        return ERR_WRONG_ARG;
+    }
+
+    int indIterator = findIterator(pIter);
+
+    if (indIterator == -1)
+    {
+        LOG("ERR: Failed to find iterator");
+        return ERR_WRONG_ARG;
+    }
+    else
+    {
+        delete m_ptr_iterators[indIterator];
+        m_ptr_iterators.remove(indIterator);
+        return ERR_OK;
+    }
+}
+
+
+
+int Set_0::getByIterator(IIterator const* pIter, IVector*& p_element) const
+{
+    if (!p_element)
+    {
+        LOG("ERR: Incorrect argument");
+        return ERR_WRONG_ARG;
+    }
+
+    int indIterator = findIterator(pIter);
+
+    if (indIterator == -1)
+    {
+        LOG("ERR: Failed to find iterator");
+        return ERR_WRONG_ARG;
+    }
+    else
+    {
+        return get(m_ptr_iterators[indIterator]->m_pos, p_element);
+    }
+}
+
+int Set_0::Iterator_0::next()
+{
+    if (m_pos + 1 >= m_set->getSize())
+    {
+        LOG("ERR: Iterator was last");
+        return ERR_OUT_OF_RANGE;
+    }
+    m_pos++;
+    return ERR_OK;
+}
+
+int Set_0::Iterator_0::prev()
+{
+    if (m_pos == 0)
+    {
+        LOG("ERR: Iterator was first");
+        return ERR_OUT_OF_RANGE;
+    }
+    m_pos--;
+    return ERR_OK;
+}
+
+bool Set_0::Iterator_0::isEnd() const
+{
+    return m_pos == m_set->getSize() - 1;
+}
+
+bool Set_0::Iterator_0::isBegin() const
+{
+    return m_pos == 0;
+}
+
+ISet::IIterator::IIterator(const ISet *const set, int pos) {}
+
+Set_0::Iterator_0::Iterator_0(ISet const* const set, int pos): ISet::IIterator(set, pos), m_set(set), m_pos(pos) {}
