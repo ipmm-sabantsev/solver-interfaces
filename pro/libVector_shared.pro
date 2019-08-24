@@ -12,7 +12,7 @@ include(_defines.pri)
 QT += core
 QT -= gui
 
-TARGET = log
+TARGET = vector
 CONFIG -= app_bundle
 
 TEMPLATE = lib
@@ -23,13 +23,20 @@ DEFINES += \
 include(_out_paths.pri)
 
 INCLUDEPATH += \
+  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
+DEPENDPATH += \
+  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
+LIBS += \
+  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/log -llog
+
+INCLUDEPATH += \
     $$INC_ROOT
 
 SOURCES += \
-    $$IMP_DIR/Log.cpp
+    $$IMP_DIR/Vector_0.cpp
 
 HEADERS += \
     $$INC_ROOT/error.h \
     $$INC_ROOT/SHARED_EXPORT.h \
-    $$INC_ROOT/ILog.h \
-    $$INC_ROOT/logging.h
+    $$INC_ROOT/logging.h \
+    $$INC_ROOT/IVector.h
