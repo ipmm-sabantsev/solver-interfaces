@@ -23,9 +23,18 @@ INCLUDEPATH += \
     $$SRC_ROOT \
     $$INC_ROOT
 
+INCLUDEPATH += \
+  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
+  $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
+DEPENDPATH += \
+  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
+  $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
+LIBS += \
+  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/log    -llog \
+  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/vector -lvector
+
 SOURCES += \
-    ../src/main.cpp \
-    ../src/IVector_Impl.cpp
+    ../src/main.cpp
 
 HEADERS += \
     $$INC_ROOT/IBrocker.h \
@@ -36,4 +45,5 @@ HEADERS += \
     $$INC_ROOT/IVector.h \
     $$INC_ROOT/ILog.h \
     $$INC_ROOT/error.h \
-    $$INC_ROOT/SHARED_EXPORT.h
+    $$INC_ROOT/SHARED_EXPORT.h \
+    $$INC_ROOT/logging.h
