@@ -35,7 +35,7 @@ public:
         ISet const* const m_set;
         unsigned int m_pos;
 
-        Iterator_0(ISet const* const set, int pos);
+        Iterator_0(ISet const* const set, unsigned int pos);
     };
 
     /*ctor*/
@@ -58,7 +58,7 @@ int Set_0::getId() const
 }
 
 unsigned int Set_0::getSize() const {
-    return m_ptr_points.size();
+    return static_cast<unsigned int>(m_ptr_points.size());
 }
 
 Set_0::Set_0(uint dim)
@@ -122,13 +122,13 @@ int Set_0::put(const IVector *const p_element)
 
 int Set_0::get(unsigned int index, IVector*& p_element) const
 {
-    if  (index >= (uint)m_ptr_points.size())
+    if  (index >= static_cast<unsigned int>(m_ptr_points.size()))
     {
         LOG("ERR: Out of range");
         return ERR_OUT_OF_RANGE;
     }
 
-    p_element = m_ptr_points[index]->clone();
+    p_element = m_ptr_points[static_cast<int>(index)]->clone();
     if (!p_element)
     {
         LOG("ERR: Not enough memory");
@@ -140,7 +140,7 @@ int Set_0::get(unsigned int index, IVector*& p_element) const
 
 int Set_0::remove(unsigned int index)
 {
-    if  (index >= (uint)m_ptr_points.size())
+    if  (index >= static_cast<unsigned int>(m_ptr_points.size()))
     {
         LOG("ERR: Out of range");
         return ERR_OUT_OF_RANGE;
@@ -158,7 +158,7 @@ int Set_0::remove(unsigned int index)
         }
     }
 
-    m_ptr_points.remove(index);
+    m_ptr_points.remove(static_cast<int>(index));
 
     return ERR_OK;
 }
@@ -233,7 +233,8 @@ Set_0::IIterator* Set_0::end()
         LOG("ERR: Iterator of empty set");
         return nullptr;
     }
-    Iterator_0* iterator = new(std::nothrow) Iterator_0(this, m_ptr_points.size() - 1);
+    Iterator_0* iterator =
+        new(std::nothrow) Iterator_0(this, static_cast<uint>(m_ptr_points.size()) - 1UL);
     if (!iterator)
     {
         LOG("ERR: Not enough memory");
@@ -331,6 +332,17 @@ bool Set_0::Iterator_0::isBegin() const
     return m_pos == 0;
 }
 
-ISet::IIterator::IIterator(const ISet *const set, int pos) {}
+ISet::IIterator::IIterator(
+    const ISet *const set,
+    int pos)
+{
 
-Set_0::Iterator_0::Iterator_0(ISet const* const set, int pos): ISet::IIterator(set, pos), m_set(set), m_pos(pos) {}
+}
+
+Set_0::Iterator_0::Iterator_0(
+    ISet const* const set,
+    unsigned int pos)
+  : ISet::IIterator(set, static_cast<int>(pos)),
+    m_set(set), m_pos(pos)
+{
+}
