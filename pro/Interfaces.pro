@@ -1,11 +1,15 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2019-04-28T14:04:47
-#
-#-------------------------------------------------
+##--------------------------
+## Defines
+##--------------------------
 
-QT       += core
-QT       -= gui
+include(_defines.pri)
+
+##--------------------------
+## Project config
+##--------------------------
+
+QT += core
+QT -= gui
 
 TARGET = Interfaces
 CONFIG += console
@@ -13,24 +17,22 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
-SRC_ROOT = ../src
-INC_ROOT = ../inc
-OUT_ROOT = ../../../out
+IMP_DIR  = $$(SRC_ROOT)/impl
 
 INCLUDEPATH += \
-    $$(SRC_ROOT) \
-    $$(INC_ROOT)
+    $$SRC_ROOT \
+    $$INC_ROOT
 
 SOURCES += \
-    ../src/main.cpp \
+    $$SRC_ROOT/main.cpp
 
 HEADERS += \
-    ../inc/IBrocker.h \
-    ../inc/ICompact.h \
-    ../inc/IProblem.h \
-    ../inc/ISet.h \
-    ../inc/ISolver.h \
-    ../inc/IVector.h \
-    ../inc/ILog.h \
-    ../inc/error.h \
-    ../inc/SHARED_EXPORT.h \
+    $$INC_ROOT/IBrocker.h \
+    $$INC_ROOT/ICompact.h \
+    $$INC_ROOT/IProblem.h \
+    $$INC_ROOT/ISet.h \
+    $$INC_ROOT/ISolver.h \
+    $$INC_ROOT/IVector.h \
+    $$INC_ROOT/ILog.h \
+    $$INC_ROOT/error.h \
+    $$INC_ROOT/SHARED_EXPORT.h
