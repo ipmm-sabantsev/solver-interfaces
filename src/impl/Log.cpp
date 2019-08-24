@@ -31,10 +31,10 @@ int ILog::init(const char* fileName)
   if(!fileName)
     return ERR_WRONG_ARG;
 
-  logFile.setFileName(QString(fileName));
-
-  if (!logFile.exists())
+  if(logFile.isOpen())
     return ERR_OPEN_ILogImpl;
+
+  logFile.setFileName(QString(fileName));
 
   if (!logFile.open(QIODevice::WriteOnly | QIODevice::Append))
     return ERR_OPEN_ILogImpl;

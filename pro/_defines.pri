@@ -12,7 +12,7 @@ INC_ROOT = $$PRJ_ROOT/inc
 OUT_ROOT  = ../out
 
 CONFIG(debug, debug|release) {
-  DBG_RLS_SWITCH = release
-} else {
   DBG_RLS_SWITCH = debug
+} else {
+  DBG_RLS_SWITCH = release
 }

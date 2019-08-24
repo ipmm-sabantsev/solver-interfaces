@@ -31,4 +31,5 @@ SOURCES += \
 HEADERS += \
     $$INC_ROOT/error.h \
     $$INC_ROOT/SHARED_EXPORT.h \
-    $$INC_ROOT/ILog.h
+    $$INC_ROOT/ILog.h \
+    $$INC_ROOT/logging.h
