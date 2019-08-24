@@ -17,7 +17,7 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
-IMP_DIR  = $$(SRC_ROOT)/impl
+include(_out_paths.pri)
 
 INCLUDEPATH += \
     $$SRC_ROOT \

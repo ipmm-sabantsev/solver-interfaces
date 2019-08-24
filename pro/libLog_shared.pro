@@ -20,6 +20,8 @@ CONFIG += dll
 DEFINES += \
   "DLL_LIBRARY=1"
 
+include(_out_paths.pri)
+
 INCLUDEPATH += \
     $$INC_ROOT
 
