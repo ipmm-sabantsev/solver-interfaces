@@ -10,20 +10,19 @@ QT       -= gui
 TARGET = Interfaces
 CONFIG += console
 CONFIG -= app_bundle
-CONFIG -= flat
 
-TEMPLATE = vcapp
+TEMPLATE = app
 
 SOURCES += \
-    src/main.cpp \
+    ../src/main.cpp \
 
 HEADERS += \
-    inc/Broker/IBrocker.h \
-    inc/Compact/ICompact.h \
-    inc/Problem/IProblem.h \
-    inc/Set/ISet.h \
-    inc/Solver/ISolver.h \
-    inc/Vector/IVector.h \
-    inc/Log/ILog.h \
-    inc/error.h \
-    inc/SHARED_EXPORT.h
+    ../inc/Broker/IBrocker.h \
+    ../inc/Compact/ICompact.h \
+    ../inc/Problem/IProblem.h \
+    ../inc/Set/ISet.h \
+    ../inc/Solver/ISolver.h \
+    ../inc/Vector/IVector.h \
+    ../inc/Log/ILog.h \
+    ../inc/error.h \
+    ../inc/SHARED_EXPORT.h \
