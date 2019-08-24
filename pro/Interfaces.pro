@@ -13,16 +13,24 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
+SRC_ROOT = ../src
+INC_ROOT = ../inc
+OUT_ROOT = ../../../out
+
+INCLUDEPATH += \
+    $$(SRC_ROOT) \
+    $$(INC_ROOT)
+
 SOURCES += \
     ../src/main.cpp \
 
 HEADERS += \
-    ../inc/Broker/IBrocker.h \
-    ../inc/Compact/ICompact.h \
-    ../inc/Problem/IProblem.h \
-    ../inc/Set/ISet.h \
-    ../inc/Solver/ISolver.h \
-    ../inc/Vector/IVector.h \
-    ../inc/Log/ILog.h \
+    ../inc/IBrocker.h \
+    ../inc/ICompact.h \
+    ../inc/IProblem.h \
+    ../inc/ISet.h \
+    ../inc/ISolver.h \
+    ../inc/IVector.h \
+    ../inc/ILog.h \
     ../inc/error.h \
     ../inc/SHARED_EXPORT.h \
