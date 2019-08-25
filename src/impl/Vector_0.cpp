@@ -1,6 +1,5 @@
 #include "IVector.h"
 
-#include <windows.h>
 #include <logging.h>
 #include <error.h>
 #include <cmath>
