@@ -2,19 +2,26 @@
 
 #include <logging.h>
 #include <IVector.h>
-//#include <memory>
 
 namespace  {
+  /// \brief Rectangle ICompact impelmentation
   class Compact_0 : public ICompact {
+  /// \brief ICompact methods impl
   public:
     int getId() const override;
 
     class Iterator_0 : public IIterator
     {
+    /// \brief IIterator methods impl
     public:
       int doStep() override;
       int setStep(IVector const* const step = nullptr) override;
 
+    /// \brief Internal methods
+    public:
+      Iterator_0(const Compact_0* const parent,
+                 const IVector* const vector,
+                 const IVector* const step);
     protected:
       ~Iterator_0() override;
 
@@ -22,9 +29,11 @@ namespace  {
       Iterator_0(const Iterator_0& other) = delete;
       void operator=(const Iterator_0& other) = delete;
 
-      const ICompact* const m_parentCompact;
-      const IVector* m_curVector;
-      IVector* const m_step;
+    /// \brief Internal variables
+    private:
+      const Compact_0* const m_parentCompact;
+      const IVector*         m_curVector;
+      IVector* const         m_step;
     };
 
     int deleteIterator(IIterator * pIter) override;
@@ -40,24 +49,28 @@ namespace  {
 
     ICompact* clone() const override;
 
+  /// \brief Internal methods
+  public:
     Compact_0(
         const IVector* const begin,
         const IVector* const end,
         const IVector* const step
         );
     ~Compact_0() override;
-
-    static const double defaultStep;
-
-  protected:
     unsigned int getDim() const;
 
+  /// \brief Internal variables
+  public:
+    static const double defaultStep;
   private:
     const IVector* const m_begin;
     const IVector* const m_end;
     const IVector* const m_step;
   };
+
 }
+
+const double Compact_0::defaultStep = 1.0;
 
 //double clamp(const double& v,
 //             const double& min,
@@ -93,6 +106,54 @@ namespace  {
 //  return true;
 //}
 
+ICompact* ICompact::createCompact(
+    const IVector *const begin,
+    const IVector *const end,
+    const IVector *const step)
+{
+  if (begin == nullptr) {
+    LOG("begin was nullptr");
+    return nullptr;
+  }
+  if(end == nullptr) {
+    LOG("end was nullptr");
+    return nullptr;
+  }
+
+  const unsigned int compDim = begin->getDim();
+  if (end->getDim() != compDim) {
+    LOG("Wrong dimesions");
+    return nullptr;
+  }
+
+  const IVector* _step = step;
+
+  if (_step == nullptr) {
+    const double* tmpStep = new double[compDim];
+    if (tmpStep == nullptr) {
+      LOG("Failed to create temporary steps array");
+      return nullptr;
+    }
+    std::fill(tmpStep, tmpStep + sizeof(tmpStep),
+              Compact_0::defaultStep);
+
+    _step = IVector::createVector(compDim, tmpStep);
+  }
+
+  const IVector* _begin = begin->clone();
+  if (_begin == nullptr) {
+    LOG("Failed to clone begin");
+    return nullptr;
+  }
+  const IVector* _end = end->clone();
+  if (_end == nullptr) {
+    LOG("Failed to clone end");
+    return nullptr;
+  }
+
+  return new Compact_0(begin, end, step);
+}
+
 int Compact_0::getId() const
 {
   return ICompact::InterfaceTypes::INTERFACE_0;
@@ -111,7 +172,7 @@ int Compact_0::isContains(const IVector * const vec, bool &result) const
     return ERR_DIMENSIONS_MISMATCH;
   }
 
-  for(unsigned int i = 0; i < compDim; ++i) {
+  for (unsigned int i = 0; i < compDim; ++i) {
     double vec_elem;
     if (vec->getCoord(i, vec_elem) != ERR_OK) {
       LOG("Failed to get vector element");
@@ -182,7 +243,7 @@ int Compact_0::isSubSet(const ICompact * const other) const
   //bool other_begiContains;
   //bool other_endContains;
 
-  LOG("Ill formated interface [method should be const, result output is absent]");
+  LOG("Ill formated interface [begin() and end() methods should be const, isSubSet result output is absent]");
   return ERR_NOT_IMPLEMENTED;
 }
 
@@ -199,69 +260,12 @@ Compact_0::Compact_0(
     m_end(end),
     m_step(step)
 {
-  Q_ASSERT(m_begin);
-  Q_ASSERT(m_end);
-  Q_ASSERT(m_step);
-}
-
-Compact_0::~Compact_0()
-{
-  if (m_begin != nullptr)
-    delete(m_begin);
-  if (m_end != nullptr)
-    delete(m_end);
-  if (m_step != nullptr)
-    delete(m_step);
+  Q_ASSERT(m_begin != nullptr);
+  Q_ASSERT(m_end   != nullptr);
+  Q_ASSERT(m_step  != nullptr);
 }
 
 unsigned int Compact_0::getDim() const
 {
   return m_begin->getDim();
-}
-
-const double Compact_0::defaultStep = 1.0;
-
-ICompact* ICompact::createCompact(const IVector *const begin, const IVector *const end, const IVector *const step)
-{
-  if (begin == nullptr) {
-    LOG("begin was nullptr");
-    return nullptr;
-  }
-  if(end == nullptr) {
-    LOG("end was nullptr");
-    return nullptr;
-  }
-
-  const unsigned int compDim = begin->getDim();
-  if (end->getDim() != compDim) {
-    LOG("Wrong dimesions");
-    return nullptr;
-  }
-
-  const IVector* _step = step;
-
-  if (_step == nullptr) {
-    const double* tmpStep = new double[compDim];
-    if (tmpStep == nullptr) {
-      LOG("Failed to create temporary steps array");
-      return nullptr;
-    }
-    std::fill(tmpStep, tmpStep + sizeof(tmpStep),
-              Compact_0::defaultStep);
-
-    IVector::createVector(compDim, tmpStep);
-  }
-
-  const IVector* _begin = begin->clone();
-  if (_begin == nullptr) {
-    LOG("Failed to clone begin");
-    return nullptr;
-  }
-  const IVector* _end = end->clone();
-  if (_end == nullptr) {
-    LOG("Failed to clone end");
-    return nullptr;
-  }
-
-  return new Compact_0(_begin, _end, _step);
 }
