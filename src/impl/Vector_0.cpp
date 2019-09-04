@@ -51,8 +51,12 @@ int Vector_0::getId() const
     return IVector::INTERFACE_0;
 }
 
-Vector_0::Vector_0(unsigned int size, double *vals): m_size(size), m_vals(vals)
-{}
+Vector_0::Vector_0(unsigned int size, double *vals)
+  : m_vals(vals),
+    m_size(size)
+{
+
+}
 
 Vector_0::~Vector_0()
 {

@@ -1,13 +1,24 @@
-#include "ICompact.h"
-#include "common.h"
+/// \brief  Rectangle ICompact implementation
+/// \author Vladimir Sabantsev
+/// \date   05.09.2019
 
-#include <logging.h>
-#include <IVector.h>
+// Suppress 'unused parameter' warnings in interface headers
+#pragma warning(push)
+#pragma warning(disable: 4100)
+  #include "common.h"
+  #include <ICompact.h>
+  #include <IVector.h>
+  #include <logging.h>
+#pragma warning(pop)
+
 #include <QScopedPointer>
 #include <QSet>
 #include <QVector>
 
-namespace  {
+// Common methods for ICompact implementations
+#include "common.cpp"
+
+namespace /* PIMPL_NAMESPACE */ {
   /// \brief Rectangle ICompact impelmentation
   class Compact_0 : public ICompact {
   /// \brief ICompact methods impl
@@ -102,7 +113,7 @@ namespace  {
 
   };
 
-}
+} /* PIMPL_NAMESPACE */
 
 const double Compact_0::defaultIncrement = 1e-3;
 
@@ -322,10 +333,6 @@ int Compact_0::getNearestNeighbor(const IVector* vec, IVector*& nn) const
     if (result != ERR_OK)
       LOG_RET("Failed to get current dimension target: " + std::to_string(coord), ERR_ANY_OTHER);
 
-    //neighborData[static_cast<int>(coord)] =
-    //    std::abs(target - iterator) < std::abs(target - bound) ?
-    //                      iterator  :                   bound;
-
     while (true) {
       iterator += increment;
 
@@ -459,6 +466,15 @@ int Compact_0::Iterator_0::setStep(const IVector* const step)
     LOG_RET("Failed to clone step", ERR_ANY_OTHER);
 
   return ERR_OK;
+}
+
+ICompact::IIterator::IIterator(
+  ICompact const* const compact, int pos, IVector const* const step)
+{
+  // Suppress 'unused parameter' warnings
+  Q_UNUSED(compact)
+  Q_UNUSED(pos);
+  Q_UNUSED(step);
 }
 
 Compact_0::Iterator_0::Iterator_0(

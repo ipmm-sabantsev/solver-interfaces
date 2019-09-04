@@ -39,7 +39,6 @@ SOURCES += \
 HEADERS += \
     $$IMP_DIR/compact/common.h
 
-
 HEADERS += \
     $$INC_ROOT/error.h \
     $$INC_ROOT/SHARED_EXPORT.h \
