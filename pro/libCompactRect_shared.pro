@@ -33,7 +33,12 @@ INCLUDEPATH += \
     $$INC_ROOT
 
 SOURCES += \
-    $$IMP_DIR/Compact_0.cpp
+    $$IMP_DIR/compact/Compact_0.cpp \
+    $$IMP_DIR/compact/common.cpp
+
+HEADERS += \
+    $$IMP_DIR/compact/common.h
+
 
 HEADERS += \
     $$INC_ROOT/error.h \

@@ -74,7 +74,7 @@ namespace  {
 
   /// \brief Internal methods
   public:
-    Compact_A(const ICompact* const);
+    Compact_A(const IVector* const step);
     ~Compact_A() override;
 
     unsigned int getDim() const;
@@ -114,6 +114,7 @@ ICompact* ICompact::createCompact(
     const IVector *const step)
 {
 
+  return new Compact_A(step);
 }
 
 Compact_A::Term::Term(const Compact_A::Operation &operation,
@@ -158,7 +159,7 @@ int Compact_A::appendTerm(const Compact_A::Operation &op, const ICompact &c)
   return ERR_OK;
 }
 
-ICompact::IIterator *Compact_A::getIterator(
+ICompact::IIterator* Compact_A::getIterator(
   bool lesser, IVector const* const step)
 {
   int result = DIMENSION_ERROR;
@@ -167,58 +168,45 @@ ICompact::IIterator *Compact_A::getIterator(
   if (bound_d == nullptr)
     return nullptr;
 
-  for(unsigned int i = 0; i < compDim; ++i) {
-    ICompact* const cur = m_terms[static_cast<int>(i)].m_member;
+  for(int i = 0; i < m_terms.size(); ++i) {
+    ICompact* const cur = m_terms[i].m_member;
     const IIterator* cur_begin_it = cur->begin();
     const IIterator* cur_end_it   = cur->end();
 
-    if (cur_begin_it == nullptr ||
-        cur_end_it == nullptr) {
-      LOG("Failed to get term iterator");
-      return nullptr;
-    }
+    if (cur_begin_it == nullptr || cur_end_it == nullptr)
+      LOG_RET("Failed to get term iterator", nullptr);
 
     IVector* cur_begin;
     result = cur->getByIterator(cur_begin_it, cur_begin);
-    if (result != ERR_OK ||
-        cur_begin == nullptr) {
-      LOG("Failed to get IVector by IIterator");
-      return nullptr;
-    }
+    if (result != ERR_OK || cur_begin == nullptr)
+      LOG_RET("Failed to get IVector by IIterator", nullptr);
 
     IVector* cur_end;
     result = cur->getByIterator(cur_end_it, cur_end);
-    if (result != ERR_OK ||
-        cur_end == nullptr) {
-      LOG("Failed to get IVector by IIterator");
-      return nullptr;
-    }
+    if (result != ERR_OK || cur_end == nullptr)
+      LOG_RET("Failed to get IVector by IIterator", nullptr);
 
     for (unsigned int coord = 0; coord < compDim; ++coord) {
       double begin_element;
       result = cur_begin->getCoord(coord, begin_element);
-      if (result != ERR_OK) {
-        LOG("Failed to get begin IVector coordinate: " + std::to_string(coord));
-        return nullptr;
-      }
+      if (result != ERR_OK)
+        LOG_RET("Failed to get begin IVector coordinate: " + std::to_string(coord), nullptr);
 
       double end_element;
       result = cur_begin->getCoord(coord, end_element);
-      if (result != ERR_OK) {
-        LOG("Failed to get end IVector coordinate: " + std::to_string(coord));
-        return nullptr;
-      }
+      if (result != ERR_OK)
+        LOG_RET("Failed to get end IVector coordinate: " + std::to_string(coord), nullptr);
 
       bound_d[i] = (begin_element < end_element) == lesser ?
-                   begin_element : end_element;
+                    begin_element : end_element;
     }
   }
 
-  IVector* leftBound = IVector::createVector(compDim, bound_d);
+  IVector* bound = IVector::createVector(compDim, bound_d);
   IVector* _step =
       step == nullptr ? m_step->clone() : step->clone();
 
-  return new Iterator_0(this, leftBound, _step);
+  return new Iterator_0(this, bound, _step);
 }
 
 int Compact_A::Intersection(const ICompact &c)
@@ -244,39 +232,41 @@ int Compact_A::SymDifference(const ICompact &c)
     return ERR_MEMORY_ALLOCATION;
 
   int unionReslut = this->Union(c);
-  if (unionReslut != ERR_OK) {
-    LOG("Failed to make Union");
-    return ERR_ANY_OTHER;
-  }
+  if (unionReslut != ERR_OK)
+    LOG_RET("Failed to make Union", ERR_ANY_OTHER);
+
   int intersectionResult = this_clone->Intersection(c);
-  if (intersectionResult != ERR_OK) {
-    LOG("Failed to make Intersection");
-    return ERR_ANY_OTHER;
-  }
+  if (intersectionResult != ERR_OK)
+    LOG_RET("Failed to make Intersection", ERR_ANY_OTHER);
+
   int differenceResult = this->Difference(*this_clone);
-  if (differenceResult != ERR_OK) {
-    LOG("Failed to make Difference");
-    return ERR_ANY_OTHER;
-  }
+  if (differenceResult != ERR_OK)
+    LOG_RET("Failed to make Difference", ERR_ANY_OTHER);
 
   delete this_clone;
   return ERR_OK;
 }
 
-ICompact::IIterator *Compact_A::end(const IVector * const step)
+ICompact::IIterator* Compact_A::end(const IVector * const step)
 {
   IIterator* end_it = getIterator(false, step);
   if (end_it == nullptr)
-    LOG("Failed to get greater bound iterator");
+    LOG_RET("Failed to get greater bound iterator", nullptr);
 
   return end_it;
 }
 
-ICompact::IIterator *Compact_A::begin(const IVector * const step)
+ICompact::IIterator* Compact_A::begin(const IVector * const step)
 {
   IIterator* begin_it = getIterator(false, step);
   if (begin_it == nullptr)
-    LOG("Failed to get lesser bound iterator");
+    LOG_RET("Failed to get lesser bound iterator", nullptr);
 
   return begin_it;
+}
+
+Compact_A::Compact_A(const IVector * const step)
+  : m_step(step)
+{
+  Q_ASSERT(m_step != nullptr);
 }
