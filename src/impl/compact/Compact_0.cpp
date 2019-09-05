@@ -29,6 +29,16 @@ namespace /* PIMPL_NAMESPACE */ {
     {
     /// \brief IIterator methods impl
     public:
+      /// \brief Scaner-like iterating steps
+      ///
+      ///              R                      R
+      ///  ┌──────────┐           ┌──────────┐
+      ///  │          │           │          │
+      ///  │          │           │          │
+      ///  │          │     >     │--------->│
+      ///  │--------->│           │--------->│
+      ///  └──────────┘           └──────────┘
+      /// L                      L
       int doStep() override;
       int setStep(IVector const* const step = nullptr) override;
 
@@ -50,8 +60,6 @@ namespace /* PIMPL_NAMESPACE */ {
       QScopedPointer<const Compact_0> m_parentCompact;
       QScopedPointer<IVector>         m_curVector;
       QScopedPointer<IVector>         m_step;
-
-      unsigned int m_lastModifiedDim;
     };
 
     int deleteIterator(IIterator* pIter) override;
@@ -422,37 +430,51 @@ Compact_0::Iterator_0* Compact_0::createIterator(const IVector* const step, bool
 int Compact_0::Iterator_0::doStep()
 {
   int result;
+
+  unsigned int currentDim = 0UL;
+  unsigned int compactDim = m_curVector->getDim();
+
   double element;
   double increment;
-  double bound;
+  double leftBound;
+  double rightBound;
 
   do {
-    result = m_curVector->getCoord(m_lastModifiedDim, element);
-    if (result != ERR_OK)
-      LOG_RET("Failed to get current dimension coordinate: " + std::to_string(m_lastModifiedDim), ERR_ANY_OTHER);
+   /* Variables initialization */ {
+      result = m_curVector->getCoord(currentDim, element);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension coordinate: " + std::to_string(currentDim), ERR_ANY_OTHER);
 
-    result = m_step->getCoord(m_lastModifiedDim, increment);
-    if (result != ERR_OK)
-      LOG_RET("Failed to get current dimension step increment: " + std::to_string(m_lastModifiedDim), ERR_ANY_OTHER);
+      result = m_step->getCoord(currentDim, increment);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension step increment: " + std::to_string(currentDim), ERR_ANY_OTHER);
 
-    result = m_parentCompact->m_end->getCoord(m_lastModifiedDim, bound);
-    if (result != ERR_OK)
-      LOG_RET("Failed to get current dimension right boundary: " + std::to_string(m_lastModifiedDim), ERR_ANY_OTHER);
+      result = m_parentCompact->m_end->getCoord(currentDim, leftBound);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension left boundary: " + std::to_string(currentDim), ERR_ANY_OTHER);
+
+      result = m_parentCompact->m_end->getCoord(currentDim, rightBound);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension right boundary: " + std::to_string(currentDim), ERR_ANY_OTHER);
+    }
 
     element += increment;
-
-    if (element + increment > bound) {
-      m_lastModifiedDim += 1;
-      if (m_lastModifiedDim == m_curVector->getDim())
-        return ERR_OUT_OF_RANGE;
-    } else {
-      result = m_curVector->setCoord(m_lastModifiedDim, element);
+    if (element < rightBound) { /* Move a bit in current dimension */
+      result = m_curVector->setCoord(currentDim, element);
       if (result != ERR_OK)
         LOG_RET("Failed to increment current vector", ERR_ANY_OTHER);
 
       return ERR_OK;
+    } else { /* Start from scratch in higher dimension */
+      result = m_curVector->setCoord(currentDim, leftBound);
+      if (result != ERR_OK)
+        LOG_RET("Failed to increment current vector", ERR_ANY_OTHER);
+
+      currentDim += 1;
     }
-  } while(true);
+
+  } while (currentDim < compactDim);
+  return ERR_OUT_OF_RANGE;
 }
 
 int Compact_0::Iterator_0::setStep(const IVector* const step)
@@ -484,8 +506,7 @@ Compact_0::Iterator_0::Iterator_0(
   : IIterator(parent, 0, step),
     m_parentCompact(parent),
     m_curVector(vector),
-    m_step(step),
-    m_lastModifiedDim(0UL)
+    m_step(step)
 {
   Q_ASSERT(m_parentCompact);
   Q_ASSERT(m_curVector);
