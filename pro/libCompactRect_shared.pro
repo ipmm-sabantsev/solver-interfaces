@@ -23,11 +23,11 @@ DEFINES += \
 include(_out_paths.pri)
 
 DEPENDPATH += \
-  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
-  $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
+    $$OUT_ROOT/$$DBG_RLS_SWITCH/log
+    $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
 LIBS += \
-  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/log    -llog \
-  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/vector -lvector
+    -L$$OUT_ROOT/$$DBG_RLS_SWITCH/log    -llog \
+    -L$$OUT_ROOT/$$DBG_RLS_SWITCH/vector -lvector
 
 INCLUDEPATH += \
     $$INC_ROOT

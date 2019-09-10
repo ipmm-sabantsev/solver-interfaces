@@ -95,35 +95,139 @@ namespace /* PIMPL_NAMESPACE */ {
     Iterator_0* createIterator(IVector const* const step, bool begin = true);
 
   /// \brief Internal variables
-  public:
-    /// \brief Default step increment to iterate through compact
-    ///
-    /// m_step[i] = defaultIncrement if other not defined
-    static const double defaultIncrement;
   private:
     /// \brief Left bound of compact
     ///
     /// m_begin[i] <= m_end[i]
-    QScopedPointer<const IVector> m_begin;
+    const QScopedPointer<const IVector> m_begin;
 
     /// \brief Right bound of compact
     ///
     /// m_begin[i] <= m_end[i]
-    QScopedPointer<const IVector> m_end;
+    const QScopedPointer<const IVector> m_end;
 
-    /// \brief Step to iterate compact through
+    /// \brief Step to iterate through compact
     ///
     /// m_step[i] >= 0.0
-    QScopedPointer<const IVector> m_step;
+    /// m_step[i] = @defaultIncrement if not defined other
+    const QScopedPointer<const IVector> m_step;
 
     /// \brief Internaly created IIterators
     QSet<const ICompact::IIterator* const> m_iterators;
 
   };
 
-} /* PIMPL_NAMESPACE */
+  /// \brief Abstract ICompact implementation
+  ///
+  /// This ICompact implementation handles operations,
+  /// but does not have its own shape.
+  /// It processes other compact shapes with operations
+  /// defined to gain illusion of having own shape.
+  class Compact_A : public ICompact
+  {
+  /// \brief Internal classes declaration
+  private:
+    enum Operation {
+      OPERATION_Intersection = 0,
+      OPERATION_Union,
+      OPERATION_Difference,
+      OPERATION_SymDifference,
 
-const double Compact_0::defaultIncrement = 1e-3;
+      DIMENSION_OPERATION
+    };
+
+  /// \brief ICompact methods impl
+  public:
+    int getId() const override;
+
+    int Intersection(const ICompact& c) override;
+    int Union(const ICompact& c) override;
+    int Difference(const ICompact& c) override;
+    int SymDifference(const ICompact& c) override;
+
+    class Iterator_0 : public IIterator
+    {
+    /// \brief IIterator methods impl
+    public:
+      int doStep() override;
+      int setStep(IVector const* const step = nullptr) override;
+
+    /// \brief Internal methods
+    public:
+      Iterator_0(const Compact_A* const parent,
+                 const IVector* const vector,
+                 const IVector* const step);
+    protected:
+      ~Iterator_0() override;
+
+    private:
+      Iterator_0(const Iterator_0& other) = delete;
+      void operator=(const Iterator_0& other) = delete;
+
+    /// \brief Internal variables
+    private:
+      const Compact_A* const m_parentCompact;
+      const IVector*         m_curVector;
+      IVector* const         m_step;
+    };
+
+    int deleteIterator(IIterator * pIter) override;
+    int getByIterator(IIterator const* pIter, IVector*& pItem) const override;
+
+    IIterator* end(IVector const* const step = nullptr) override;
+    IIterator* begin(IVector const* const step = nullptr) override;
+
+    int isContains(IVector const* const vec, bool& result) const override;
+    int isSubSet(ICompact const* const other) const override;
+
+    int getNearestNeighbor(IVector const* vec, IVector *& nn) const override;
+
+    ICompact* clone() const override;
+
+  /// \brief Internal methods
+  public:
+    Compact_A(
+        const ICompact* const compact = nullptr,
+        const IVector* const step = nullptr);
+    ~Compact_A() override;
+
+    unsigned int getDim() const;
+
+  protected:
+    int appendTerm(const Operation& operation, const ICompact* const compact);
+    IIterator* getIterator(bool lesser, const IVector* const step = nullptr);
+
+  /// \brief Internal variables
+  private:
+    /// \brief Processed compacts
+    ///
+    /// m_compacts.size() == n
+    /// Compacts processing rule:
+    /// ((m_compacts[0]) m_operations[0] m_compacts[1])
+    QVector<ICompact* const> m_compacts;
+
+    /// \brief Operations that will be applied to compacts
+    ///
+    /// m_operations.size() == n - 1
+    /// /// Compacts processing rule:
+    /// ((m_compacts[0]) m_operations[0] m_compacts[1])
+    QVector<Operation> m_operations;
+
+    /// \brief Step to iterate through compact
+    ///
+    /// m_step[i] >= 0.0
+    /// m_step[i] = @defaultIncrement if not defined other
+    const QScopedPointer<const IVector> m_step;
+
+    /// \brief Internaly created IIterators
+    QSet<const ICompact::IIterator* const> m_iterators;
+
+  };
+
+  /// \brief Default step increment to iterate through compacts
+  static const double defaultIncrement = 1e-3;
+
+} /* PIMPL_NAMESPACE */
 
 ICompact* ICompact::createCompact(
     const IVector* const begin,
@@ -182,7 +286,7 @@ ICompact* ICompact::createCompact(
 
   /* Process step */ {
     if (!step) {
-      QVector<double> tmpStep(static_cast<int>(compDim), Compact_0::defaultIncrement);
+      QVector<double> tmpStep(static_cast<int>(compDim), defaultIncrement);
       m_step = IVector::createVector(compDim, tmpStep.data());
       if (m_step == nullptr)
         LOG_RET("Failed to create new step IVector", nullptr);
@@ -197,7 +301,17 @@ ICompact* ICompact::createCompact(
 
   } /* Process step */
 
-  return new Compact_0(m_begin, m_end, m_step);
+  const QScopedPointer<const Compact_0> rectCompact(
+        new Compact_0(m_begin, m_end, m_step));
+  if (!rectCompact)
+    LOG_RET("Failed to create rectangular compact", nullptr);
+
+  const QScopedPointer<Compact_A> abstrCompact(
+        new Compact_A(rectCompact.data(), m_step));
+  if (!abstrCompact)
+    LOG_RET("Failed to create abstract compact", nullptr);
+
+  return abstrCompact.data();
 }
 
 int Compact_0::getId() const
@@ -523,4 +637,96 @@ Compact_0::Iterator_0::~Iterator_0()
 const IVector* Compact_0::Iterator_0::getVectorPtr() const
 {
   return m_curVector.data();
+}
+
+int Compact_A::getId() const
+{
+  return ICompact::InterfaceTypes::INTERFACE_0;
+}
+
+int Compact_A::Intersection(const ICompact& c)
+{
+  return appendTerm(OPERATION_Intersection, &c);
+}
+
+int Compact_A::Union(const ICompact& c)
+{
+  return appendTerm(OPERATION_Union, &c);
+}
+
+int Compact_A::Difference(const ICompact& c)
+{
+  return appendTerm(OPERATION_Difference, &c);
+}
+
+int Compact_A::SymDifference(const ICompact& c)
+{
+  return appendTerm(OPERATION_SymDifference, &c);
+}
+
+int Compact_A::isContains(const IVector* const vec, bool& result) const
+{
+  int cResult;
+  int i = 0;
+
+  cResult = m_compacts[0]->isContains(vec, result);
+  if (cResult != ERR_OK)
+    LOG_RET("Failed to check if vec contains in compact: " + std::to_string(i), ERR_ANY_OTHER);
+
+  bool iResult;
+  for (++i; i < m_compacts.size(); ++i) {
+    cResult = m_compacts[0]->isContains(vec, iResult);
+    if (cResult != ERR_OK)
+      LOG_RET("Failed to check if vec contains in compact: " + std::to_string(i), ERR_ANY_OTHER);
+
+    switch (m_operations[i - 1]) {
+    case OPERATION_Intersection:
+      result = result && iResult;
+      break;
+    case OPERATION_Union:
+      result = result || iResult;
+      break;
+    case OPERATION_Difference:
+      result = result && !iResult;
+      break;
+    case OPERATION_SymDifference:
+      result = (result || iResult) && !(result && iResult);
+      break;
+    default:
+      return ERR_NOT_IMPLEMENTED;
+    }
+  }
+
+  return ERR_OK;
+}
+
+ICompact* Compact_A::clone() const
+{
+  IVector* step_clone = m_step->clone();
+  if (step_clone == nullptr)
+    LOG_RET("Failed to clone step", nullptr);
+
+  Compact_A* this_clone = new Compact_A(nullptr, step_clone);
+  if (this_clone == nullptr)
+    LOG_RET("Failed to create empty abstract compact", nullptr);
+
+  for (auto it = m_compacts.begin(); it != m_compacts.end(); ++it)
+    this_clone->m_compacts.append((*it)->clone());
+
+  for (auto it = m_operations.begin(); it != m_operations.end(); ++it)
+    this_clone->m_operations.append(*it);
+
+}
+
+Compact_A::Compact_A(
+    const ICompact* const compact,
+    const IVector* const step)
+  : m_compacts(),
+    m_operations(),
+    m_step(step),
+    m_iterators()
+{
+  Q_ASSERT(step != nullptr);
+  int result = appendTerm(OPERATION_Union, compact);
+  Q_ASSERT(result == ERR_OK);
 }
