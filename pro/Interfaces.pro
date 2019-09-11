@@ -23,15 +23,18 @@ INCLUDEPATH += \
     $$SRC_ROOT \
     $$INC_ROOT
 
-INCLUDEPATH += \
-  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
-  $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
-DEPENDPATH += \
-  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
-  $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
+#INCLUDEPATH += \
+#  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
+#  $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
+#  $$OUT_ROOT/$$DBG_RLS_SWITCH/compact
+#DEPENDPATH += \
+#  $$OUT_ROOT/$$DBG_RLS_SWITCH/log
+#  $$OUT_ROOT/$$DBG_RLS_SWITCH/vector
+#  $$OUT_ROOT/$$DBG_RLS_SWITCH/compact
 LIBS += \
-  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/log    -llog \
-  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/vector -lvector
+  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/log     -llog \
+  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/vector  -lvector \
+  -L$$OUT_ROOT/$$DBG_RLS_SWITCH/compact -lcompact
 
 SOURCES += \
     $$SRC_ROOT/main.cpp

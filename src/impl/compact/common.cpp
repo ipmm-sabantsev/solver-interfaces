@@ -26,8 +26,12 @@ namespace /* PIMP_NAMESPACE */ {
       if (result != ERR_OK)
         LOG_RET("Failed to get end IVector coordinate: " + std::to_string(coord), ERR_ANY_OTHER);
 
-      bound->setCoord(coord, (begin_element < end_element) == left ?
-                              begin_element : end_element);
+      double bound_element = (begin_element < end_element) == left ?
+                              begin_element : end_element;
+      bound->setCoord(coord, bound_element);
+      //LOG("begin: " + std::to_string(begin_element));
+      //LOG("end: " + std::to_string(end_element));
+      //LOG("bound: " + std::to_string(bound_element));
     }
 
     return ERR_OK;

@@ -7,7 +7,7 @@
 #define S1(x) #x
 #define S2(x) S1(x)
 #define LOCATION \
-  std::string(__func__) + " " + __FILE__ + ":" S2(__LINE__) + " "
+  std::string(__FILE__) + ":" + S2(__LINE__) + " [" + __FUNCTION__ + "] "
 
 #define LOG(message) \
   ILog::report((std::string(LOCATION) + std::string(message)).c_str())
@@ -18,5 +18,15 @@
   LOG("Returns " + std::string(#ret_val) + "..."); \
   return ret_val;                                  \
 }
+
+struct ScopedILog {
+  ScopedILog(const std::string fileName) {
+    int result = ILog::init(fileName.c_str());
+    Q_ASSERT(result == ERR_OK);
+  }
+  ~ScopedILog() {
+    ILog::destroy();
+  }
+};
 
 #endif // LOGGING_H

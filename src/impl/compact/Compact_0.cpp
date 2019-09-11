@@ -19,13 +19,75 @@
 #include "common.cpp"
 
 namespace /* PIMPL_NAMESPACE */ {
-  /// \brief Rectangle ICompact impelmentation
-  class Compact_0 : public ICompact {
+  /// \brief Abstract compact
+  ///
+  /// This class shares some common ICompact methods implementations
+  /// with Compact_R and Compact_C classes
+  class ACompact : public ICompact {
   /// \brief ICompact methods impl
   public:
     int getId() const override;
 
-    class Iterator_0 : public IIterator
+    class AIterator : public IIterator
+    {
+    /// \brief IIterator methods impl
+    public:
+      int setStep(IVector const* const step = nullptr) override;
+
+    /// \brief Internal methods
+    public:
+      AIterator(const ACompact* const parent,
+                IVector* const vector,
+                const IVector* const step);
+      ~AIterator() override;
+
+      const IVector* vectorPtr() const;
+
+      template<class T>
+      const T* parent() const;
+
+    /// \brief Internal variables
+    protected:
+      const ACompact* const   m_parentCompact;
+      QScopedPointer<IVector> m_curVector;
+      QScopedPointer<IVector> m_step;
+    };
+
+    int deleteIterator(IIterator* pIter) override;
+    int getByIterator(IIterator const* pIter, IVector*& pItem) const override;
+
+    IIterator* end(IVector const* const step = nullptr) override;
+    IIterator* begin(IVector const* const step = nullptr) override;
+
+  /// \brief Internal methods
+  public:
+    ACompact(const IVector* const step);
+    ~ACompact() override;
+
+    virtual unsigned int getDim() const = 0;
+    bool isValidIterator(const IIterator* const pIter) const;
+
+  private:
+    virtual AIterator* createIterator(const IVector* const step, bool begin = true) = 0;
+
+  /// \brief Internal variables
+  protected:
+    /// \brief Step to iterate through compact
+    ///
+    /// m_step[i] >= 0.0
+    /// m_step[i] = @defaultIncrement if not defined other
+    const QScopedPointer<const IVector> m_step;
+
+    /// \brief Internaly created IIterators
+    QSet<const ICompact::IIterator* const> m_iterators;
+
+  };
+
+  /// \brief Rectangle ICompact impelmentation
+  class Compact_R : public ACompact {
+  /// \brief ICompact methods impl
+  public:
+    class Iterator_R : public AIterator
     {
     /// \brief IIterator methods impl
     public:
@@ -40,33 +102,14 @@ namespace /* PIMPL_NAMESPACE */ {
       ///  └──────────┘           └──────────┘
       /// L                      L
       int doStep() override;
-      int setStep(IVector const* const step = nullptr) override;
 
     /// \brief Internal methods
     public:
-      Iterator_0(const Compact_0* const parent,
+      Iterator_R(const Compact_R* const parent,
                  IVector* const vector,
-                 IVector* const step);
-      ~Iterator_0() override;
+                 const IVector* const step);
 
-      const IVector* getVectorPtr() const;
-
-    private:
-      Iterator_0(const Iterator_0& other) = delete;
-      void operator=(const Iterator_0& other) = delete;
-
-    /// \brief Internal variables
-    private:
-      QScopedPointer<const Compact_0> m_parentCompact;
-      QScopedPointer<IVector>         m_curVector;
-      QScopedPointer<IVector>         m_step;
     };
-
-    int deleteIterator(IIterator* pIter) override;
-    int getByIterator(IIterator const* pIter, IVector*& pItem) const override;
-
-    IIterator* end(IVector const* const step = nullptr) override;
-    IIterator* begin(IVector const* const step = nullptr) override;
 
     int isContains(IVector const* const vec, bool& result) const override;
 
@@ -79,51 +122,41 @@ namespace /* PIMPL_NAMESPACE */ {
 
     ICompact* clone() const override;
 
+  /// \brief ACompact methods impl
+  public:
+    unsigned int getDim() const override;
+  private:
+    AIterator* createIterator(IVector const* const step, bool begin = true) override;
+
   /// \brief Internal methods
   public:
-    Compact_0(
-        const IVector* const begin,
-        const IVector* const end,
+    Compact_R(
+        IVector* const begin,
+        IVector* const end,
         const IVector* const step
         );
-    ~Compact_0() override;
-
-    unsigned int getDim() const;
-    bool isValidIterator(const IIterator* const pIter) const;
-
-  private:
-    Iterator_0* createIterator(IVector const* const step, bool begin = true);
 
   /// \brief Internal variables
-  private:
+  protected:
     /// \brief Left bound of compact
     ///
-    /// m_begin[i] <= m_end[i]
-    const QScopedPointer<const IVector> m_begin;
+    /// m_leftBound[i] <= m_rightBound[i]
+    QScopedPointer<IVector> m_leftBound;
 
     /// \brief Right bound of compact
     ///
-    /// m_begin[i] <= m_end[i]
-    const QScopedPointer<const IVector> m_end;
-
-    /// \brief Step to iterate through compact
-    ///
-    /// m_step[i] >= 0.0
-    /// m_step[i] = @defaultIncrement if not defined other
-    const QScopedPointer<const IVector> m_step;
-
-    /// \brief Internaly created IIterators
-    QSet<const ICompact::IIterator* const> m_iterators;
+    /// m_leftBound[i] <= m_rightBound[i]
+    QScopedPointer<IVector> m_rightBound;
 
   };
 
-  /// \brief Abstract ICompact implementation
+  /// \brief Container ICompact implementation
   ///
   /// This ICompact implementation handles operations,
   /// but does not have its own shape.
   /// It processes other compact shapes with operations
   /// defined to gain illusion of having own shape.
-  class Compact_A : public ICompact
+  class Compact_C : public Compact_R
   {
   /// \brief Internal classes declaration
   private:
@@ -138,44 +171,34 @@ namespace /* PIMPL_NAMESPACE */ {
 
   /// \brief ICompact methods impl
   public:
-    int getId() const override;
-
     int Intersection(const ICompact& c) override;
     int Union(const ICompact& c) override;
     int Difference(const ICompact& c) override;
     int SymDifference(const ICompact& c) override;
 
-    class Iterator_0 : public IIterator
+    class Iterator_C : public Iterator_R
     {
     /// \brief IIterator methods impl
     public:
+      /// \brief Scaner-like iterating steps
+      ///
+      ///              R                      R
+      ///  ┌──────────┐           ┌──────────┐
+      ///  │          │           │          │
+      ///  │ ┌──────┐ │           │ ┌──────┐ │
+      ///  │ └──────┘ │     >     │-└──────┘>│
+      ///  │--------->│           │--------->│
+      ///  └──────────┘           └──────────┘
+      /// L                      L
       int doStep() override;
-      int setStep(IVector const* const step = nullptr) override;
 
     /// \brief Internal methods
     public:
-      Iterator_0(const Compact_A* const parent,
-                 const IVector* const vector,
+      Iterator_C(const Compact_C* const parent,
+                 IVector* const vector,
                  const IVector* const step);
-    protected:
-      ~Iterator_0() override;
 
-    private:
-      Iterator_0(const Iterator_0& other) = delete;
-      void operator=(const Iterator_0& other) = delete;
-
-    /// \brief Internal variables
-    private:
-      const Compact_A* const m_parentCompact;
-      const IVector*         m_curVector;
-      IVector* const         m_step;
     };
-
-    int deleteIterator(IIterator * pIter) override;
-    int getByIterator(IIterator const* pIter, IVector*& pItem) const override;
-
-    IIterator* end(IVector const* const step = nullptr) override;
-    IIterator* begin(IVector const* const step = nullptr) override;
 
     int isContains(IVector const* const vec, bool& result) const override;
     int isSubSet(ICompact const* const other) const override;
@@ -184,18 +207,22 @@ namespace /* PIMPL_NAMESPACE */ {
 
     ICompact* clone() const override;
 
+  /// \brief ACompact methods impl
+  public:
+    unsigned int getDim() const override;
+  private:
+    AIterator* createIterator(IVector const* const step, bool begin = true) override;
+
   /// \brief Internal methods
   public:
-    Compact_A(
-        const ICompact* const compact = nullptr,
+    Compact_C(
+        ICompact* const compact = nullptr,
         const IVector* const step = nullptr);
-    ~Compact_A() override;
-
-    unsigned int getDim() const;
+    ~Compact_C() override;
 
   protected:
-    int appendTerm(const Operation& operation, const ICompact* const compact);
-    IIterator* getIterator(bool lesser, const IVector* const step = nullptr);
+    int appendTerm(const Operation& operation, ICompact* const compact);
+    int update();
 
   /// \brief Internal variables
   private:
@@ -204,7 +231,7 @@ namespace /* PIMPL_NAMESPACE */ {
     /// m_compacts.size() == n
     /// Compacts processing rule:
     /// ((m_compacts[0]) m_operations[0] m_compacts[1])
-    QVector<ICompact* const> m_compacts;
+    QVector<ICompact*> m_compacts;
 
     /// \brief Operations that will be applied to compacts
     ///
@@ -213,21 +240,14 @@ namespace /* PIMPL_NAMESPACE */ {
     /// ((m_compacts[0]) m_operations[0] m_compacts[1])
     QVector<Operation> m_operations;
 
-    /// \brief Step to iterate through compact
-    ///
-    /// m_step[i] >= 0.0
-    /// m_step[i] = @defaultIncrement if not defined other
-    const QScopedPointer<const IVector> m_step;
-
-    /// \brief Internaly created IIterators
-    QSet<const ICompact::IIterator* const> m_iterators;
-
   };
 
   /// \brief Default step increment to iterate through compacts
   static const double defaultIncrement = 1e-3;
 
 } /* PIMPL_NAMESPACE */
+
+/* ---- ICompact factory methods ---- */
 
 ICompact* ICompact::createCompact(
     const IVector* const begin,
@@ -236,8 +256,8 @@ ICompact* ICompact::createCompact(
 {
   int result = DIMENSION_ERROR;
   unsigned int compDim = 0;
-  IVector* m_begin(nullptr);
-  IVector* m_end(nullptr);
+  IVector* m_leftBound(nullptr);
+  IVector* m_rightBound(nullptr);
   IVector* m_step(nullptr);
 
   /* Process begin and end */ {
@@ -254,30 +274,30 @@ ICompact* ICompact::createCompact(
     if (end->getDim() != compDim)
       LOG_RET("Wrong end vector dimension", nullptr);
 
-    m_begin = begin->clone();
-    if (m_begin == nullptr)
+    m_leftBound = begin->clone();
+    if (m_leftBound == nullptr)
       LOG_RET("Failed to clone begin vector", nullptr);
 
-    m_end = end->clone();
-    if (m_end == nullptr)
+    m_rightBound = end->clone();
+    if (m_rightBound == nullptr)
       LOG_RET("Failed to clone end vector", nullptr);
 
     for (unsigned int i = 0; i < compDim; ++i) {
       double beginCoord, endCoord;
 
-      result = m_begin->getCoord(i, beginCoord);
+      result = m_leftBound->getCoord(i, beginCoord);
       if (result != ERR_OK)
         LOG_RET("Failed to get begin coord: " + std::to_string(i), nullptr);
 
-      result = m_end->getCoord(i, endCoord);
+      result = m_rightBound->getCoord(i, endCoord);
       if (result != ERR_OK)
         LOG_RET("Failed to get end coord: " + std::to_string(i), nullptr);
 
-      result = m_begin->setCoord(i, beginCoord < endCoord ? beginCoord : endCoord);
+      result = m_leftBound->setCoord(i, beginCoord < endCoord ? beginCoord : endCoord);
       if (result != ERR_OK)
         LOG_RET("Failed to change begin coord: " + std::to_string(i), nullptr);
 
-      result = m_end->setCoord(  i, beginCoord > endCoord ? beginCoord : endCoord);
+      result = m_rightBound->setCoord(  i, beginCoord > endCoord ? beginCoord : endCoord);
       if (result != ERR_OK)
         LOG_RET("Failed to change end coord: " + std::to_string(i), nullptr);
     }
@@ -285,7 +305,7 @@ ICompact* ICompact::createCompact(
   } /* Process begin and end */
 
   /* Process step */ {
-    if (!step) {
+    if (step == nullptr) {
       QVector<double> tmpStep(static_cast<int>(compDim), defaultIncrement);
       m_step = IVector::createVector(compDim, tmpStep.data());
       if (m_step == nullptr)
@@ -301,48 +321,101 @@ ICompact* ICompact::createCompact(
 
   } /* Process step */
 
-  const QScopedPointer<const Compact_0> rectCompact(
-        new Compact_0(m_begin, m_end, m_step));
+  const QScopedPointer<const Compact_R> rectCompact(
+        new Compact_R(m_leftBound, m_rightBound, m_step));
   if (!rectCompact)
     LOG_RET("Failed to create rectangular compact", nullptr);
 
-  const QScopedPointer<Compact_A> abstrCompact(
-        new Compact_A(rectCompact.data(), m_step));
+  Compact_C* abstrCompact =
+        new Compact_C(rectCompact.data()->clone(), m_step->clone());
   if (!abstrCompact)
     LOG_RET("Failed to create abstract compact", nullptr);
 
-  return abstrCompact.data();
+  return abstrCompact;
 }
 
-int Compact_0::getId() const
+ICompact::IIterator::IIterator(
+  ICompact const* const compact,
+  int pos, IVector const* const step)
+{
+  // Suppress 'unused parameter' warnings
+  Q_UNUSED(compact)
+  Q_UNUSED(pos);
+  Q_UNUSED(step);
+}
+
+/* ---- ACompact implementation ---- */
+
+int ACompact::getId() const
 {
   return ICompact::InterfaceTypes::INTERFACE_0;
 }
 
-int Compact_0::deleteIterator(ICompact::IIterator* pIter)
+int ACompact::AIterator::setStep(const IVector* const step)
+{
+  if (step == nullptr)
+    m_step.reset(m_parentCompact->m_step->clone());
+  else
+    m_step.reset(step->clone());
+
+  if (!m_step)
+    LOG_RET("Failed to clone step", ERR_ANY_OTHER);
+
+  return ERR_OK;
+}
+
+ACompact::AIterator::AIterator(
+    const ACompact* const parent,
+    IVector* const vector,
+    const IVector* const step)
+  : IIterator(parent, 0, step),
+    m_parentCompact(parent),
+    m_curVector(vector),
+    m_step(nullptr)
+{
+  Q_ASSERT(m_parentCompact);
+  Q_ASSERT(m_curVector);
+
+  Q_ASSERT(setStep(step) == ERR_OK);
+  Q_ASSERT(m_step);
+}
+
+ACompact::AIterator::~AIterator()
+{
+  // Nothing to do, all variables are smart ptrs.
+  // Destructor is called only from ACompact.
+  // ACompact handles iterators QSet by it self.
+}
+
+const IVector* ACompact::AIterator::vectorPtr() const
+{
+  return m_curVector.data();
+}
+
+int ACompact::deleteIterator(ICompact::IIterator* pIter)
 {
   if (!isValidIterator(pIter))
     LOG_RET("Invalid iterator", ERR_WRONG_ARG);
 
   m_iterators.remove(pIter);
-  delete static_cast<Iterator_0*>(pIter);
+  delete static_cast<AIterator*>(pIter);
 
   return ERR_OK;
 }
 
-int Compact_0::getByIterator(const ICompact::IIterator* pIter, IVector*& pItem) const
+int ACompact::getByIterator(const ICompact::IIterator* pIter, IVector*& pItem) const
 {
   if (!isValidIterator(pIter))
     LOG_RET("Invalid iterator", ERR_WRONG_ARG);
 
-  pItem = static_cast<const Iterator_0*>(pIter)->getVectorPtr()->clone();
+  pItem = static_cast<const AIterator*>(pIter)->vectorPtr()->clone();
   if (pItem == nullptr)
     LOG_RET("Failed to clone iterated vector", ERR_ANY_OTHER);
 
   return ERR_OK;
 }
 
-ICompact::IIterator* Compact_0::end(const IVector* const step)
+ICompact::IIterator* ACompact::end(const IVector* const step)
 {
   IIterator* iter = createIterator(step, false);
   if (iter == nullptr)
@@ -353,9 +426,9 @@ ICompact::IIterator* Compact_0::end(const IVector* const step)
   return iter;
 }
 
-ICompact::IIterator* Compact_0::begin(const IVector* const step)
+ICompact::IIterator* ACompact::begin(const IVector* const step)
 {
-  IIterator* iter = createIterator(step, true);
+  AIterator* iter = createIterator(step, true);
   if (iter == nullptr)
     LOG_RET("Failed to get begin iterator", nullptr);
 
@@ -364,7 +437,96 @@ ICompact::IIterator* Compact_0::begin(const IVector* const step)
   return iter;
 }
 
-int Compact_0::isContains(const IVector* const vec, bool &result) const
+ACompact::ACompact(const IVector* const step)
+  : m_step(step),
+    m_iterators()
+{
+  Q_ASSERT(m_step);
+}
+
+ACompact::~ACompact()
+{
+  for (const IIterator* it : m_iterators)
+    delete static_cast<const AIterator*>(it);
+}
+
+bool ACompact::isValidIterator(const ICompact::IIterator* const pIter) const
+{
+  if (pIter == nullptr)
+    LOG_RET("Passed iterator was nullptr", false);
+
+  if (m_iterators.find(pIter) == m_iterators.end())
+    LOG_RET("Passed iterator does not iterates this compact", false);
+
+  return true;
+}
+
+template<class T>
+const T* ACompact::AIterator::parent() const
+{
+  return static_cast<const T*>(m_parentCompact);
+}
+
+/* ---- Compact_R implementation ---- */
+
+int Compact_R::Iterator_R::doStep()
+{
+  int result;
+
+  unsigned int currentDim = 0UL;
+  unsigned int compactDim = m_curVector->getDim();
+
+  double element;
+  double increment;
+  double leftBound;
+  double rightBound;
+
+  do {
+   /* Variables initialization */ {
+      result = m_curVector->getCoord(currentDim, element);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension coordinate: " + std::to_string(currentDim), ERR_ANY_OTHER);
+
+      result = m_step->getCoord(currentDim, increment);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension step increment: " + std::to_string(currentDim), ERR_ANY_OTHER);
+
+      result = parent<Compact_R>()->m_leftBound->getCoord(currentDim, leftBound);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension left boundary: " + std::to_string(currentDim), ERR_ANY_OTHER);
+
+      result = parent<Compact_R>()->m_rightBound->getCoord(currentDim, rightBound);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get current dimension right boundary: " + std::to_string(currentDim), ERR_ANY_OTHER);
+    }
+
+    element += increment;
+    if (element <= rightBound) { /* Move a bit in current dimension */
+      result = m_curVector->setCoord(currentDim, element);
+      if (result != ERR_OK)
+        LOG_RET("Failed to increment current vector", ERR_ANY_OTHER);
+
+      return ERR_OK;
+    } else { /* Start from scratch in higher dimension */
+      result = m_curVector->setCoord(currentDim, leftBound);
+      if (result != ERR_OK)
+        LOG_RET("Failed to increment current vector", ERR_ANY_OTHER);
+
+      currentDim += 1;
+    }
+
+  } while (currentDim < compactDim);
+  return ERR_OUT_OF_RANGE;
+}
+
+Compact_R::Iterator_R::Iterator_R(
+    const Compact_R* const parent,
+    IVector* const vector,
+    const IVector* const step)
+  : AIterator(parent, vector, step)
+{  }
+
+int Compact_R::isContains(const IVector* const vec, bool &result) const
 {
   if (vec == nullptr)
     LOG_RET("vector was nullptr", ERR_WRONG_ARG);
@@ -379,11 +541,11 @@ int Compact_0::isContains(const IVector* const vec, bool &result) const
       LOG_RET("Failed to get vector element", ERR_OUT_OF_RANGE);
 
     double begin_elem;
-    if (m_begin->getCoord(i, begin_elem) != ERR_OK)
+    if (m_leftBound->getCoord(i, begin_elem) != ERR_OK)
       LOG_RET("Failed to get begin element", ERR_OUT_OF_RANGE);
 
     double end_elem;
-    if (m_begin->getCoord(i, end_elem) != ERR_OK)
+    if (m_rightBound->getCoord(i, end_elem) != ERR_OK)
       LOG_RET("Failed to get begin element", ERR_OUT_OF_RANGE);
 
     if (vec_elem < begin_elem ||
@@ -397,7 +559,7 @@ int Compact_0::isContains(const IVector* const vec, bool &result) const
   return ERR_OK;
 }
 
-int Compact_0::isSubSet(const ICompact* const other) const
+int Compact_R::isSubSet(const ICompact* const other) const
 {
   LOG("Ill formated interface:");
   LOG("  1. begin() and end() methods should have const variation");
@@ -409,12 +571,12 @@ int Compact_0::isSubSet(const ICompact* const other) const
   int result;
 
   bool other_contains_this_begin;
-  result = other->isContains(m_begin.data(), other_contains_this_begin);
+  result = other->isContains(m_leftBound.data(), other_contains_this_begin);
   if (result != ERR_OK)
     LOG_RET("Failed to check if other contains left boundary of this compact", ERR_ANY_OTHER);
 
   bool other_contains_this_end;
-  result = other->isContains(m_end.data(), other_contains_this_end);
+  result = other->isContains(m_rightBound.data(), other_contains_this_end);
   if (result != ERR_OK)
     LOG_RET("Failed to check if other contains left boundary of this compact", ERR_ANY_OTHER);
 
@@ -422,7 +584,7 @@ int Compact_0::isSubSet(const ICompact* const other) const
         ERR_OK : DIMENSION_ERROR;
 }
 
-int Compact_0::getNearestNeighbor(const IVector* vec, IVector*& nn) const
+int Compact_R::getNearestNeighbor(const IVector* vec, IVector*& nn) const
 {
   int result;
 
@@ -436,7 +598,7 @@ int Compact_0::getNearestNeighbor(const IVector* vec, IVector*& nn) const
   QVector<double> neighborVector(static_cast<int>(compDim));
   for (unsigned int coord = 0; coord < compDim; ++coord) {
     double iterator;
-    result = m_begin->getCoord(coord, iterator);
+    result = m_leftBound->getCoord(coord, iterator);
     if (result != ERR_OK)
       LOG_RET("Failed to get current dimension left boundary: " + std::to_string(coord), ERR_ANY_OTHER);
 
@@ -446,7 +608,7 @@ int Compact_0::getNearestNeighbor(const IVector* vec, IVector*& nn) const
       LOG_RET("Failed to get current dimension step increment: " + std::to_string(coord), ERR_ANY_OTHER);
 
     double bound;
-    result = m_end->getCoord(coord, bound);
+    result = m_rightBound->getCoord(coord, bound);
     if (result != ERR_OK)
       LOG_RET("Failed to get current dimension right boundary: " + std::to_string(coord), ERR_ANY_OTHER);
 
@@ -483,214 +645,114 @@ int Compact_0::getNearestNeighbor(const IVector* vec, IVector*& nn) const
   return ERR_OK;
 }
 
-ICompact* Compact_0::clone() const
+ICompact* Compact_R::clone() const
 {
-  return new Compact_0(m_begin->clone(), m_end->clone(), m_step->clone());
+  return new Compact_R(m_leftBound->clone(), m_rightBound->clone(), m_step->clone());
 }
 
-Compact_0::Compact_0(
-    const IVector* const begin,
-    const IVector* const end,
+Compact_R::Compact_R(
+    IVector* const begin,
+    IVector* const end,
     const IVector* const step)
-  : m_begin(begin),
-    m_end(end),
-    m_step(step)
+  : ACompact(step),
+    m_leftBound(begin),
+    m_rightBound(end)
 {
-  Q_ASSERT(m_begin);
-  Q_ASSERT(m_end);
-  Q_ASSERT(m_step);
+  //Q_ASSERT(m_leftBound);
+  //Q_ASSERT(m_rightBound);
 }
 
-Compact_0::~Compact_0()
+unsigned int Compact_R::getDim() const
 {
-  for (const IIterator* it : m_iterators)
-    delete static_cast<const Iterator_0*>(it);
+  return m_leftBound->getDim();
 }
 
-unsigned int Compact_0::getDim() const
+ACompact::AIterator* Compact_R::createIterator(const IVector* const step, bool begin)
 {
-  return m_begin->getDim();
+  IVector* iter_vec = begin ? m_leftBound->clone() : m_rightBound->clone();
+  if (iter_vec == nullptr)
+    LOG_RET("Failed to clone vector", nullptr);
+
+  AIterator* iter = new Iterator_R(this, iter_vec, step);
+  if (iter == nullptr)
+    LOG_RET("Failed to create new IIterator", nullptr);
+
+  return iter;
 }
 
-bool Compact_0::isValidIterator(const ICompact::IIterator* const pIter) const
-{
-  if (pIter == nullptr)
-    LOG_RET("Passed iterator was nullptr", false);
+/* ---- Compact_C implementation ---- */
 
-  if (m_iterators.find(pIter) == m_iterators.end())
-    LOG_RET("Passed iterator does not iterates this compact", false);
-
-  return true;
-}
-
-Compact_0::Iterator_0* Compact_0::createIterator(const IVector* const step, bool begin)
-{
-  IVector* _step(nullptr);
-  if (step != nullptr) {
-    if (absVector(step, _step) != ERR_OK)
-      LOG_RET("Failed to make step coordinates absolute", nullptr);
-  } else {
-    _step = m_step->clone();
-  }
-
-  IVector* vector = begin ?
-        m_begin.data()->clone() : m_end.data()->clone();
-  if (vector == nullptr)
-    LOG_RET("Failed to clone end vector", nullptr);
-
-  return new Iterator_0(this, vector, _step);
-}
-
-int Compact_0::Iterator_0::doStep()
+int Compact_C::Iterator_C::doStep()
 {
   int result;
-
-  unsigned int currentDim = 0UL;
-  unsigned int compactDim = m_curVector->getDim();
-
-  double element;
-  double increment;
-  double leftBound;
-  double rightBound;
-
+  bool contains;
   do {
-   /* Variables initialization */ {
-      result = m_curVector->getCoord(currentDim, element);
-      if (result != ERR_OK)
-        LOG_RET("Failed to get current dimension coordinate: " + std::to_string(currentDim), ERR_ANY_OTHER);
+    result = Iterator_R::doStep();
+    if (result != ERR_OK)
+      return result;
 
-      result = m_step->getCoord(currentDim, increment);
-      if (result != ERR_OK)
-        LOG_RET("Failed to get current dimension step increment: " + std::to_string(currentDim), ERR_ANY_OTHER);
-
-      result = m_parentCompact->m_end->getCoord(currentDim, leftBound);
-      if (result != ERR_OK)
-        LOG_RET("Failed to get current dimension left boundary: " + std::to_string(currentDim), ERR_ANY_OTHER);
-
-      result = m_parentCompact->m_end->getCoord(currentDim, rightBound);
-      if (result != ERR_OK)
-        LOG_RET("Failed to get current dimension right boundary: " + std::to_string(currentDim), ERR_ANY_OTHER);
-    }
-
-    element += increment;
-    if (element < rightBound) { /* Move a bit in current dimension */
-      result = m_curVector->setCoord(currentDim, element);
-      if (result != ERR_OK)
-        LOG_RET("Failed to increment current vector", ERR_ANY_OTHER);
-
-      return ERR_OK;
-    } else { /* Start from scratch in higher dimension */
-      result = m_curVector->setCoord(currentDim, leftBound);
-      if (result != ERR_OK)
-        LOG_RET("Failed to increment current vector", ERR_ANY_OTHER);
-
-      currentDim += 1;
-    }
-
-  } while (currentDim < compactDim);
-  return ERR_OUT_OF_RANGE;
-}
-
-int Compact_0::Iterator_0::setStep(const IVector* const step)
-{
-  if (step == nullptr)
-    m_step.reset(m_parentCompact->m_step->clone());
-  else
-    m_step.reset(step->clone());
-
-  if (!m_step)
-    LOG_RET("Failed to clone step", ERR_ANY_OTHER);
+    result = parent<Compact_C>()->isContains(vectorPtr(), contains);
+    if (result != ERR_OK)
+      LOG_RET("Failed to check if current vector contains in compact", ERR_ANY_OTHER);
+  } while (!contains);
 
   return ERR_OK;
 }
 
-ICompact::IIterator::IIterator(
-  ICompact const* const compact, int pos, IVector const* const step)
-{
-  // Suppress 'unused parameter' warnings
-  Q_UNUSED(compact)
-  Q_UNUSED(pos);
-  Q_UNUSED(step);
-}
-
-Compact_0::Iterator_0::Iterator_0(
-    const Compact_0* const parent,
+Compact_C::Iterator_C::Iterator_C(
+    const Compact_C* const parent,
     IVector* const vector,
-    IVector* const step)
-  : IIterator(parent, 0, step),
-    m_parentCompact(parent),
-    m_curVector(vector),
-    m_step(step)
+    const IVector* const step)
+  : Iterator_R(parent, vector, step)
+{  }
+
+int Compact_C::Intersection(const ICompact& c)
 {
-  Q_ASSERT(m_parentCompact);
-  Q_ASSERT(m_curVector);
-  Q_ASSERT(m_step);
+  return appendTerm(OPERATION_Intersection, c.clone());
 }
 
-Compact_0::Iterator_0::~Iterator_0()
+int Compact_C::Union(const ICompact& c)
 {
-  // nothing to do, all variables are smart ptrs
-  // destructor is called only from Compact_0
-  // Compact_0 handles iterators set by it self
+  return appendTerm(OPERATION_Union, c.clone());
 }
 
-const IVector* Compact_0::Iterator_0::getVectorPtr() const
+int Compact_C::Difference(const ICompact& c)
 {
-  return m_curVector.data();
+  return appendTerm(OPERATION_Difference, c.clone());
 }
 
-int Compact_A::getId() const
+int Compact_C::SymDifference(const ICompact& c)
 {
-  return ICompact::InterfaceTypes::INTERFACE_0;
+  return appendTerm(OPERATION_SymDifference, c.clone());
 }
 
-int Compact_A::Intersection(const ICompact& c)
+int Compact_C::isContains(const IVector* const vec, bool& result) const
 {
-  return appendTerm(OPERATION_Intersection, &c);
-}
-
-int Compact_A::Union(const ICompact& c)
-{
-  return appendTerm(OPERATION_Union, &c);
-}
-
-int Compact_A::Difference(const ICompact& c)
-{
-  return appendTerm(OPERATION_Difference, &c);
-}
-
-int Compact_A::SymDifference(const ICompact& c)
-{
-  return appendTerm(OPERATION_SymDifference, &c);
-}
-
-int Compact_A::isContains(const IVector* const vec, bool& result) const
-{
-  int cResult;
+  int errResult;
   int i = 0;
 
-  cResult = m_compacts[0]->isContains(vec, result);
-  if (cResult != ERR_OK)
+  errResult = m_compacts[0]->isContains(vec, result);
+  if (errResult != ERR_OK)
     LOG_RET("Failed to check if vec contains in compact: " + std::to_string(i), ERR_ANY_OTHER);
 
-  bool iResult;
-  for (++i; i < m_compacts.size(); ++i) {
-    cResult = m_compacts[0]->isContains(vec, iResult);
-    if (cResult != ERR_OK)
+  bool contains_in_current;
+  for (i = 1; i < m_compacts.size(); ++i) {
+    errResult = m_compacts[i]->isContains(vec, contains_in_current);
+    if (errResult != ERR_OK)
       LOG_RET("Failed to check if vec contains in compact: " + std::to_string(i), ERR_ANY_OTHER);
 
     switch (m_operations[i - 1]) {
     case OPERATION_Intersection:
-      result = result && iResult;
+      result = result && contains_in_current;
       break;
     case OPERATION_Union:
-      result = result || iResult;
+      result = result || contains_in_current;
       break;
     case OPERATION_Difference:
-      result = result && !iResult;
+      result = result && !contains_in_current;
       break;
     case OPERATION_SymDifference:
-      result = (result || iResult) && !(result && iResult);
+      result = (result || contains_in_current) && !(result && contains_in_current);
       break;
     default:
       return ERR_NOT_IMPLEMENTED;
@@ -700,33 +762,194 @@ int Compact_A::isContains(const IVector* const vec, bool& result) const
   return ERR_OK;
 }
 
-ICompact* Compact_A::clone() const
+int Compact_C::isSubSet(const ICompact* const other) const
+{
+  Q_UNUSED(other);
+  return ERR_NOT_IMPLEMENTED;
+}
+
+int Compact_C::getNearestNeighbor(const IVector* vec, IVector*& nn) const
+{
+  Q_UNUSED(vec);
+  Q_UNUSED(nn);
+  return ERR_NOT_IMPLEMENTED;
+}
+
+ICompact* Compact_C::clone() const
 {
   IVector* step_clone = m_step->clone();
   if (step_clone == nullptr)
     LOG_RET("Failed to clone step", nullptr);
 
-  Compact_A* this_clone = new Compact_A(nullptr, step_clone);
+  Compact_C* this_clone = new Compact_C(nullptr, step_clone);
   if (this_clone == nullptr)
     LOG_RET("Failed to create empty abstract compact", nullptr);
 
-  for (auto it = m_compacts.begin(); it != m_compacts.end(); ++it)
-    this_clone->m_compacts.append((*it)->clone());
+  for (auto it = m_compacts.begin(); it != m_compacts.end(); ++it) {
+    ICompact* comp_clone = (*it)->clone();
+    if (comp_clone == nullptr) {
+      delete this_clone;
+      LOG_RET("Failed to clone inner compact", nullptr);
+    }
+
+    this_clone->m_compacts.append(comp_clone);
+  }
 
   for (auto it = m_operations.begin(); it != m_operations.end(); ++it)
     this_clone->m_operations.append(*it);
 
+  this_clone->update();
+
+  return this_clone;
 }
 
-Compact_A::Compact_A(
-    const ICompact* const compact,
+Compact_C::Compact_C(
+    ICompact* const compact,
     const IVector* const step)
-  : m_compacts(),
-    m_operations(),
-    m_step(step),
-    m_iterators()
+  : Compact_R(nullptr, nullptr, step),
+    m_compacts(),
+    m_operations()
 {
-  Q_ASSERT(step != nullptr);
-  int result = appendTerm(OPERATION_Union, compact);
-  Q_ASSERT(result == ERR_OK);
+  // compact could be nullptr only while clone()
+  if (compact != nullptr) {
+    m_compacts.append(compact);
+    update();
+  }
+}
+
+Compact_C::~Compact_C()
+{
+  for (auto it = m_compacts.begin(); it != m_compacts.end(); ++it)
+    delete (*it);
+}
+
+unsigned int Compact_C::getDim() const
+{
+  int result;
+
+  ICompact* inner_compact = m_compacts[0];
+  if (inner_compact == nullptr)
+    LOG_RET("Failed to get inner compact", 0UL);
+
+  ICompact::IIterator* iter = inner_compact->begin();
+  if (iter == nullptr)
+    LOG_RET("Failed to get inner compact begin iterator", 0UL);
+
+  IVector* inner_begin;
+  result = inner_compact->getByIterator(iter, inner_begin);
+  if (result != ERR_OK)
+    LOG_RET("Failed to get inner compact begin vector", 0UL);
+
+  return inner_begin->getDim();
+}
+
+ACompact::AIterator* Compact_C::createIterator(const IVector* const step, bool begin)
+{
+  if (m_leftBound == nullptr || m_rightBound == nullptr)
+    LOG_RET("Bounds are not valid", nullptr);
+
+  IVector* iter_vec = begin ? m_leftBound->clone() : m_rightBound->clone();
+  if (iter_vec == nullptr)
+    LOG_RET("Failed to clone vector", nullptr);
+
+  AIterator* iter = new Iterator_C(this, iter_vec, step);
+  if (iter == nullptr)
+    LOG_RET("Failed to create new IIterator", nullptr);
+
+  return iter;
+}
+
+int Compact_C::appendTerm(const Compact_C::Operation& operation, ICompact* const compact)
+{
+  m_compacts.append(compact);
+  m_operations.append(operation);
+  update();
+
+  return ERR_OK;
+}
+
+int Compact_C::update()
+{
+  int result;
+
+  unsigned int compDim = getDim();
+
+  /* Reset bounds */ {
+    // Compare with NAN are always false
+    QVector<double> empty(static_cast<int>(compDim), std::nan(""));
+
+    m_leftBound.reset(IVector::createVector(compDim, empty.data()));
+    if (!m_leftBound)
+      LOG_RET("Failed to create empty vector", ERR_ANY_OTHER);
+
+    m_rightBound.reset(IVector::createVector(compDim, empty.data()));
+    if (!m_rightBound)
+      LOG_RET("Failed to create empty vector", ERR_ANY_OTHER);
+  } /* Reset bounds */
+
+  for (auto comp_it = m_compacts.begin(); comp_it != m_compacts.end(); ++comp_it) {
+    IVector* leftBound(nullptr);
+    IVector* rightBound(nullptr);
+    /* Get bounds of current compact */ {
+      ICompact::IIterator* begin_it = (*comp_it)->begin();
+      if (begin_it == nullptr)
+        LOG_RET("Failed to get begin iterator", ERR_ANY_OTHER);
+
+      IVector* begin_vec(nullptr);
+      result = (*comp_it)->getByIterator(begin_it, begin_vec);
+      if (result != ERR_OK || begin_vec == nullptr)
+        LOG_RET("Failed to get vector from begin iterator", ERR_ANY_OTHER);
+
+      ICompact::IIterator* end_it = (*comp_it)->end();
+      if (end_it == nullptr)
+        LOG_RET("Failed to get end iterator", ERR_ANY_OTHER);
+
+      IVector* end_vec(nullptr);
+      result = (*comp_it)->getByIterator(end_it, end_vec);
+      if (result != ERR_OK || end_vec == nullptr)
+        LOG_RET("Failed to get vector from end iterator", ERR_ANY_OTHER);
+
+      result = getBound(begin_vec, end_vec, leftBound, true);
+      if (result != ERR_OK || leftBound == nullptr)
+        LOG_RET("Failed to detect leftBounds of inner compact", ERR_ANY_OTHER);
+
+      result = getBound(begin_vec, end_vec, rightBound, false);
+      if (result != ERR_OK || rightBound == nullptr)
+        LOG_RET("Failed to detect rightBounds of inner compact", ERR_ANY_OTHER);
+    } /* Get bounds of current compact */
+
+    for (unsigned int i = 0; i < compDim; ++i) {
+      double m_leftBound_value, leftBound_value;
+      double m_rightBound_value, rightBound_value;
+      /* Get current dim values */ {
+        result = m_leftBound->getCoord(i, m_leftBound_value);
+        if (result != ERR_OK)
+          LOG_RET("Failed to get vector coord: " + std::to_string(i), ERR_ANY_OTHER);
+
+        result = leftBound->getCoord(i, leftBound_value);
+        if (result != ERR_OK)
+          LOG_RET("Failed to get vector coord: " + std::to_string(i), ERR_ANY_OTHER);
+
+        result = m_rightBound->getCoord(i, m_rightBound_value);
+        if (result != ERR_OK)
+          LOG_RET("Failed to get vector coord: " + std::to_string(i), ERR_ANY_OTHER);
+
+        result = rightBound->getCoord(i, rightBound_value);
+        if (result != ERR_OK)
+          LOG_RET("Failed to get vector coord: " + std::to_string(i), ERR_ANY_OTHER);
+      } /* Get current dim values */
+
+      result = m_leftBound->setCoord(i, m_leftBound_value < leftBound_value ?
+                                        m_leftBound_value : leftBound_value);
+      if (result != ERR_OK)
+        LOG_RET("Failed to set vector coord: " + std::to_string(i), ERR_ANY_OTHER);
+
+      result = m_rightBound->setCoord(i, m_rightBound_value > rightBound_value ?
+                                         m_rightBound_value : rightBound_value);
+      if (result != ERR_OK)
+        LOG_RET("Failed to set vector coord: " + std::to_string(i), ERR_ANY_OTHER);
+    }
+  }
+
+  return ERR_OK;
 }
