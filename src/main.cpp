@@ -60,7 +60,24 @@ int main(int argc, char *argv[])
     )
   );
 
+  QVector<double> D(static_cast<int>(dim), 1.4);
+  QScopedPointer<ICompact> compactExtra(
+    ICompact::createCompact(
+      IVector::createVector(dim, A.data()),
+      IVector::createVector(dim, D.data())
+    )
+  );
+
+  //  1.4         xx
+  //  1.2         xx
+  //  1.0   xxxxxxxx
+  //  0.8   x    x
+  //  0.6   x    x
+  //  0.4   x    x
+  //  0.2   x    x
+  //  0.0   xxxxxx
   compact->Difference(*compactMini.data());
+  compact->Union(*compactExtra.data());
 
   ICompact::IIterator* compactIterator = compact->begin();
   do {
