@@ -12,13 +12,15 @@
 #include <QString>
 #include <QStringList>
 #include <QScopedPointer>
-#include <logging.h>
 
-#include "ILog.h"
-#include "IBrocker.h"
-#include "ISolver.h"
-#include "IProblem.h"
-#include "ICompact.h"
+#pragma warning(push)
+#pragma warning(disable: 4100)
+  #include "IBrocker.h"
+  #include "ISolver.h"
+  #include "IProblem.h"
+  #include "ICompact.h"
+  #include <logging.h>
+#pragma warning(pop)
 
 namespace {
   class Solver_0 : public ISolver {
@@ -141,15 +143,15 @@ int Solver_0::setParams(IVector const* solverParams)
       LOG_RET("Mismatch of parameters dimensions", ERR_WRONG_ARG);
 
   } else {
-    argsDim = round(coords[0]);
-    paramsDim = round(coords[1]);
+    argsDim = static_cast<size_t>(round(coords[0]));
+    paramsDim = static_cast<size_t>(round(coords[1]));
   }
 
   double eps = coords[2];
   if (eps <= 0)
     LOG_RET("Negative epsilon", ERR_WRONG_ARG);
 
-  size_t solveByArgsFlag = round(coords[3]);
+  size_t solveByArgsFlag = static_cast<size_t>(round(coords[3]));
   if (solveByArgsFlag != 0 && solveByArgsFlag != 1)
     LOG_RET("Invalid solve by arguments flag", ERR_WRONG_ARG);
 
@@ -374,6 +376,15 @@ int Solver_0::solve()
     LOG_RET("Invalid problem", ERR_WRONG_ARG);
 
   return solveByArgs ? doSolveByArgs() : doSolveByParams();
+}
+
+int Solver_0::getSolution(IVector*& vec) const
+{
+  if (!m_curr)
+    LOG_RET("Solution is invalid", ERR_ANY_OTHER);
+
+  vec = m_curr->clone();
+  return ERR_OK;
 }
 
 int Brocker_1::getId() const
