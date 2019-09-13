@@ -24,6 +24,22 @@ QString toString(const IVector* const vector)
   return string;
 }
 
+void dumpCompact(ICompact* const compact)
+{
+  ICompact::IIterator* compactIterator(compact->begin());
+
+  do {
+    QScopedPointer<IVector> vector; {
+      IVector* _vector;
+      compact->getByIterator(compactIterator, _vector);
+      vector.reset(_vector);
+    }
+    LOG(toString(vector.data()).toStdString());
+  } while(compactIterator->doStep() == ERR_OK);
+
+  compact->deleteIterator(compactIterator);
+}
+
 int main(int argc, char *argv[])
 {
   ScopedILog logger("logFile");
@@ -78,16 +94,20 @@ int main(int argc, char *argv[])
   //  0.0   xxxxxx
   compact->Difference(*compactMini.data());
   compact->Union(*compactExtra.data());
+  LOG("DUMP NON CONVEXT COMPACT");
+  dumpCompact(compact.data());
 
-  ICompact::IIterator* compactIterator = compact->begin();
-  do {
-    QScopedPointer<IVector> vector; {
-      IVector* _vector;
-      compact->getByIterator(compactIterator, _vector);
-      vector.reset(_vector);
-    }
-    LOG(toString(vector.data()).toStdString());
-  } while(compactIterator->doStep() == ERR_OK);
+  //  1.4   xxxxxxxx
+  //  1.2   xxxxxxxx
+  //  1.0   xxxxxxxx
+  //  0.8   xxxxxxxx
+  //  0.6   xxxxxxxx
+  //  0.4   xxxxxxxx
+  //  0.2   xxxxxxxx
+  //  0.0   xxxxxxxx
+  compact->MakeConvex();
+  LOG("DUMP CONVEXT COMPACT");
+  dumpCompact(compact.data());
 
   return 0;
 }

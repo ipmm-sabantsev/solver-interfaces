@@ -175,6 +175,7 @@ namespace /* PIMPL_NAMESPACE */ {
     int Union(const ICompact& c) override;
     int Difference(const ICompact& c) override;
     int SymDifference(const ICompact& c) override;
+    int MakeConvex() override;
 
     class Iterator_C : public Iterator_R
     {
@@ -222,7 +223,12 @@ namespace /* PIMPL_NAMESPACE */ {
 
   protected:
     int appendTerm(const Operation& operation, ICompact* const compact);
+
     int update();
+    /// \brief Properly clears m_compacts
+    ///
+    /// Unable to make QScopedPointer container in current Qt Version
+    void clearCompacts();
 
   /// \brief Internal variables
   private:
@@ -231,6 +237,8 @@ namespace /* PIMPL_NAMESPACE */ {
     /// m_compacts.size() == n
     /// Compacts processing rule:
     /// ((m_compacts[0]) m_operations[0] m_compacts[1])
+    ///
+    /// Unable to make QScopedPointer container in current Qt Version
     QVector<ICompact*> m_compacts;
 
     /// \brief Operations that will be applied to compacts
@@ -726,6 +734,30 @@ int Compact_C::SymDifference(const ICompact& c)
   return appendTerm(OPERATION_SymDifference, c.clone());
 }
 
+int Compact_C::MakeConvex()
+{
+  IVector* begin = m_leftBound->clone();
+  IVector* end   = m_rightBound->clone();
+  IVector* step  = m_step->clone();
+
+  if (begin == nullptr ||
+      end   == nullptr ||
+      step  == nullptr)
+    LOG_RET("Failed to clone convex compact data", ERR_MEMORY_ALLOCATION);
+
+  clearCompacts();
+  m_operations.clear();
+
+  Compact_R* comp_convex = new Compact_R(begin, end, step);
+  if (comp_convex == nullptr)
+    LOG_RET("Failed to create convex subCompact", ERR_MEMORY_ALLOCATION);
+
+  m_compacts.append(comp_convex);
+  update();
+
+  return ERR_OK;
+}
+
 int Compact_C::isContains(const IVector* const vec, bool& result) const
 {
   int errResult;
@@ -768,10 +800,55 @@ int Compact_C::isSubSet(const ICompact* const other) const
   return ERR_NOT_IMPLEMENTED;
 }
 
+// Not quite right implementation
+// nn is gauranted to be nearest
+// nn is not gauranted to be found
+//
+// Implementation should be more like Compact_R::getNearestNeighbor
+// but with modifications tracking non convex nature of Compact_C
 int Compact_C::getNearestNeighbor(const IVector* vec, IVector*& nn) const
 {
-  Q_UNUSED(vec);
-  Q_UNUSED(nn);
+  int result;
+
+  QScopedPointer<IVector> meth_nearest(nullptr);
+  double min_distance = std::nan("");
+  for (auto compact : m_compacts) {
+    QScopedPointer<IVector> for_nearest; {
+      IVector* l_nearest_ptr;
+      compact->getNearestNeighbor(vec, l_nearest_ptr);
+      if (l_nearest_ptr == nullptr)
+        LOG_RET("Failed to get nearest to subCompact", ERR_ANY_OTHER);
+      for_nearest.reset(l_nearest_ptr);
+    }
+
+    bool contains; {
+      result = isContains(for_nearest.data(), contains);
+      if (result != ERR_OK)
+        LOG_RET("Failed to check if near vector contains in compact", ERR_ANY_OTHER);
+    }
+
+    // Not quite right implementation
+    // We should continue to search for containing nearest
+    // instead of wiping non containing
+    if (contains) {
+      QScopedPointer<IVector> diff(IVector::subtract(vec, for_nearest.data()));
+
+      double distance;
+      result = diff->norm(IVector::NORM_1, distance);
+      if (result != ERR_OK)
+        LOG_RET("Failed to get distance btw vecotors", ERR_ANY_OTHER);
+
+      // Compare with nan always false
+      if (!(min_distance > distance))
+        meth_nearest.reset(for_nearest->clone());
+    }
+  }
+
+  if (meth_nearest)
+    nn = meth_nearest->clone();
+  else
+    nn = nullptr;
+
   return ERR_NOT_IMPLEMENTED;
 }
 
@@ -819,8 +896,7 @@ Compact_C::Compact_C(
 
 Compact_C::~Compact_C()
 {
-  for (auto it = m_compacts.begin(); it != m_compacts.end(); ++it)
-    delete (*it);
+  clearCompacts();
 }
 
 unsigned int Compact_C::getDim() const
@@ -952,4 +1028,11 @@ int Compact_C::update()
   }
 
   return ERR_OK;
+}
+
+void Compact_C::clearCompacts()
+{
+  for (auto it = m_compacts.begin(); it != m_compacts.end(); ++it)
+    delete (*it);
+  m_compacts.clear();
 }
