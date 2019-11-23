@@ -1,42 +1,80 @@
-#include "IVector.h"
-
+#include <IVector.h>
+#include <ILog.h>
 #include <logging.h>
 #include <error.h>
 #include <cmath>
+//#include "vector.h"
 
 namespace {
-class Vector_0: public IVector {
+class Vector_0: public IVector{
 public:
 
-    int getId() const;
+//    enum InterfaceTypes
+//    {
+//        INTERFACE_0,
+//        DIMENSION_INTERFACE_IMPL
+//    };
+
+//    enum NormType
+//    {
+//        NORM_1,
+//        NORM_2,
+//        NORM_INF,
+//        DIMENSION_NORM
+//    };
+
+     int getId() const;
+
+    /*factories*/
+    // static IVector* createVector(unsigned int size, double const* vals);
 
     /*operations*/
-    int add(IVector const* const right);
-    int subtract(IVector const* const right);
-    int multiplyByScalar(double scalar);
-    int dotProduct(IVector const* const right, double& res) const;
+     int add(IVector const* const right);
+     int subtract(IVector const* const right);
+     int multiplyByScalar(double scalar) ;
+     int dotProduct(IVector const* const right, double& res) const;
+     int crossProduct(IVector const* const right)
+    {
+        qt_assert("NOT IMPLEMENTED", __FILE__, __LINE__);
+        return ERR_NOT_IMPLEMENTED;
+    }
 
-    /*utils*/
-    unsigned int getDim() const;
-    int norm(NormType type, double& res) const;
-    int setCoord(unsigned int index, double elem);
-    int getCoord(unsigned int index, double & elem) const;
-    int setAllCoords(unsigned int dim, double* coords);
-    int getCoordsPtr(unsigned int & dim, double const*& elem) const;
-    IVector* clone() const;
+//    /*static operations*/
+//    static IVector* add(IVector const* const left, IVector const* const right);
+//    static IVector* subtract(IVector const* const left, IVector const* const right);
+//    static IVector* multiplyByScalar(IVector const* const left, double scalar);
+//    static IVector* crossProduct(IVector const* const left, IVector const* const right)
+//    {
+//        //qt_assert("NOT IMPLEMENTED", __FILE__, __LINE__);
+//        return static_cast<IVector*>(0);
+//    }
 
     /*comparators*/
-    int gt(IVector const* const right, NormType type, bool& result) const;
-    int lt(IVector const* const right, NormType type, bool& result) const;
-    int eq(IVector const* const right, NormType type, bool& result, double precision) const;
+     int gt(IVector const* const right, NormType type, bool& result) const ;
+     int lt(IVector const* const right, NormType type, bool& result) const ;
+     int eq(IVector const* const right, NormType type, bool& result, double precision) const;
 
-    /*ctor*/
-    Vector_0(unsigned int m_size, double* m_vals);
+    /*utils*/
+     unsigned int getDim() const ;
+     int norm(NormType type, double& res) const ;
+     int setCoord(unsigned int index, double elem) ;
+     int getCoord(unsigned int index, double & elem) const ;
+     int setAllCoords(unsigned int dim, double* coords) ;
+     int getCoordsPtr(unsigned int & dim, double const*& elem) const;
+     IVector* clone() const ;
+
+     /*ctor*/
+      Vector_0(unsigned int size, double *vals);
 
     /*dtor*/
-    ~Vector_0();
+     ~Vector_0(){
+         delete[] m_vals;
+     }
 
-private:
+    protected:
+    Vector_0() = default;
+
+    private:
     double* m_vals;
     size_t m_size;
 
@@ -58,18 +96,19 @@ Vector_0::Vector_0(unsigned int size, double *vals)
 
 }
 
-Vector_0::~Vector_0()
-{
-    delete[] m_vals;
-}
+//IVector::~IVector()
+//{
+//    delete[] m_vals;
+//}
 
+//IVector* IVector::createVector(unsigned int size, double const* vals)
 IVector* IVector::createVector(unsigned int size, double const* vals)
 {
     double *valsNew = new(std::nothrow) double[size];
     if (!valsNew)
     {
         LOG("ERR: Not enough memory");
-        return nullptr;
+        return NULL;
     }
 
     for(size_t i = 0; i < size; i++)
@@ -77,22 +116,24 @@ IVector* IVector::createVector(unsigned int size, double const* vals)
         valsNew[i] = vals[i];
     }
 
+   // IVector *vect = new(std::nothrow) IVector(size, valsNew);
     IVector *vect = new(std::nothrow) Vector_0(size, valsNew);
     if (!vect)
     {
         LOG("ERR: Not enough memory");
         delete[] valsNew;
-        return nullptr;
+        return NULL;
     }
 
     return vect;
 }
 
+//int IVector::add(IVector const* const right)
 int Vector_0::add(IVector const* const right)
 {
     if (!right)
     {
-        LOG("ERR: nullptr pointer");
+        LOG("ERR: NULL pointer");
         return ERR_WRONG_ARG;
     }
     if (m_size != right->getDim())
@@ -119,7 +160,7 @@ int Vector_0::add(IVector const* const right)
             delete[] valsTmp;
             return errType;
         }
-        valsTmp[i] += coord;
+        valsTmp[i] = m_vals[i] + coord;
     }
 
     delete[] m_vals;
@@ -128,11 +169,12 @@ int Vector_0::add(IVector const* const right)
     return ERR_OK;
 }
 
+//int IVector::subtract(IVector const* const right)
 int Vector_0::subtract(IVector const* const right)
 {
     if (!right)
     {
-        LOG("ERR: nullptr pointer");
+        LOG("ERR: NULL pointer");
         return ERR_WRONG_ARG;
     }
     if (m_size != right->getDim())
@@ -158,7 +200,7 @@ int Vector_0::subtract(IVector const* const right)
             delete[] valsTmp;
             return errType;
         }
-        valsTmp[i] -= coord;
+        valsTmp[i] = m_vals[i] - coord;
     }
 
     delete[] m_vals;
@@ -176,11 +218,12 @@ int Vector_0::multiplyByScalar(double scalar)
     return ERR_OK;
 }
 
+//int IVector::dotProduct(IVector const* const right, double& res) const
 int Vector_0::dotProduct(IVector const* const right, double& res) const
 {
     if (!right)
     {
-        LOG("ERR: nullptr pointer");
+        LOG("ERR: NULL pointer");
         return ERR_WRONG_ARG;
     }
     if (m_size != right->getDim())
@@ -277,7 +320,7 @@ int Vector_0::setAllCoords(unsigned int dim, double* coords)
     }
     if (!coords)
     {
-        LOG("ERR: nullptr pointer");
+        LOG("ERR: NULL pointer");
         return ERR_WRONG_ARG;
     }
     for(size_t i = 0; i < m_size; i++)
@@ -294,89 +337,101 @@ int Vector_0::getCoordsPtr(unsigned int & dim, double const*& elem) const
     return ERR_OK;
 }
 
+//IVector* IVector::clone() const
+//{
+//    return createVector(m_size, m_vals);
+//}
+
 IVector* Vector_0::clone() const
 {
     return createVector(m_size, m_vals);
 }
 
+//IVector* IVector::add(IVector const* const left, IVector const* const right)
 IVector* IVector::add(IVector const* const left, IVector const* const right)
 {
     if (!left || !right)
     {
-        LOG("ERR: nullptr pointer");
-        return nullptr;
+        LOG("ERR: NULL pointer");
+        return NULL;
     }
     if (left->getDim() != right->getDim())
     {
         LOG("ERR: Dimensions mismatch");
-        return nullptr;
+        return NULL;
     }
+    //IVector* res = left->clone();
     IVector* res = left->clone();
     if (!res)
     {
         LOG("ERR: Cloning of vector failed");
-        return nullptr;
+        return NULL;
     }
     if (res->add(right) != ERR_OK)
     {
         delete res;
-        return nullptr;
+        return NULL;
     }
     return res;
 }
 
+//IVector* IVector::subtract(IVector const* const left, IVector const* const right)
 IVector* IVector::subtract(IVector const* const left, IVector const* const right)
 {
     if (!left || !right)
     {
-        LOG("ERR: nullptr pointer");
-        return nullptr;
+        LOG("ERR: NULL pointer");
+        return NULL;
     }
     if (left->getDim() != right->getDim())
     {
         LOG("ERR: Dimensions mismatch");
-        return nullptr;
+        return NULL;
     }
+    //IVector* res = left->clone();
     IVector* res = left->clone();
     if (!res)
     {
         LOG("ERR: Cloning of vector failed");
-        return nullptr;
+        return NULL;
     }
     if (res->subtract(right) != ERR_OK)
     {
         delete res;
-        return nullptr;
+        return NULL;
     }
     return res;
 }
 
+//IVector* IVector::multiplyByScalar(IVector const* const left, double scalar)
 IVector* IVector::multiplyByScalar(IVector const* const left, double scalar)
 {
     if (!left)
     {
-        LOG("ERR: nullptr pointer");
-        return nullptr;
+        LOG("ERR: NULL pointer");
+        return NULL;
     }
+    //IVector* res = left->clone();
     IVector* res = left->clone();
     if (!res)
     {
         LOG("ERR: Cloning of vector failed");
-        return nullptr;
+        return NULL;
     }
     if (res->multiplyByScalar(scalar) != ERR_OK)
     {
         delete res;
-        return nullptr;
+        return NULL;
     }
     return res;
 }
 
+//int IVector::gt(IVector const* const right, NormType type, bool& result) const
 int Vector_0::gt(IVector const* const right, NormType type, bool& result) const
 {
     if (!right)
     {
-        LOG("ERR: nullptr pointer");
+        LOG("ERR: NULL pointer");
         return ERR_WRONG_ARG;
     }
     if (m_size != right->getDim())
@@ -403,11 +458,13 @@ int Vector_0::gt(IVector const* const right, NormType type, bool& result) const
     result = normResL > normResR;
     return ERR_OK;
 }
+
+//int IVector::lt(IVector const* const right, NormType type, bool& result) const
 int Vector_0::lt(IVector const* const right, NormType type, bool& result) const
 {
     if (!right)
     {
-        LOG("ERR: nullptr pointer");
+        LOG("ERR: NULL pointer");
         return ERR_WRONG_ARG;
     }
     if (m_size != right->getDim())
@@ -434,11 +491,13 @@ int Vector_0::lt(IVector const* const right, NormType type, bool& result) const
     result = normResL < normResR;
     return ERR_OK;
 }
+
+//int IVector::eq(IVector const* const right, NormType type, bool& result, double precision) const
 int Vector_0::eq(IVector const* const right, NormType type, bool& result, double precision) const
 {
     if (!right)
     {
-        LOG("ERR: nullptr pointer");
+        LOG("ERR: NULL pointer");
         return ERR_WRONG_ARG;
     }
     if (m_size != right->getDim())
@@ -447,6 +506,7 @@ int Vector_0::eq(IVector const* const right, NormType type, bool& result, double
         return ERR_DIMENSIONS_MISMATCH;
     }
 
+    //IVector *tmp = IVector::subtract(this, right);
     IVector *tmp = IVector::subtract(this, right);
     if (!tmp)
     {
@@ -462,6 +522,6 @@ int Vector_0::eq(IVector const* const right, NormType type, bool& result, double
         delete tmp;
         return errType;
     }
-    result = normRes < precision;
+    result = fabs(normRes) < precision;
     return ERR_OK;
 }

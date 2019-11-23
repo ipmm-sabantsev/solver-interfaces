@@ -2,6 +2,7 @@
 #include "IBrocker.h"
 #include "IProblem.h"
 #include "IVector.h"
+//#include "problem.h"
 
 namespace {
 
@@ -35,7 +36,7 @@ private:
     size_t m_dimArgs, m_dimParams;
     IVector *m_args, *m_params;
 
-    double GoalFunctionCalculate_0(unsigned int dimArgs, unsigned int dimParams, double * args, double * params, double &res) const;
+    int GoalFunctionCalculate_0(unsigned int dimArgs, unsigned int dimParams, double const* args, double const* params, double &res) const;
     int derivativeGoalFunctionCalculate_Order1_0(size_t idx, DerivedType dr, double &value, const IVector *args, const IVector *params) const;
     int derivativeGoalFunctionCalculate_Order2_0(size_t idx, DerivedType dr, double &value, const IVector *args, const IVector *params) const;
 
@@ -70,7 +71,7 @@ int Problem_0::getId() const {
     return IProblem::INTERFACE_0;
 }
 
-int Problem_0::GoalFunctionCalculate_0(unsigned int dimArgs, unsigned int dimParams, double *args, double *params, double &res ) const
+int Problem_0::GoalFunctionCalculate_0(unsigned int dimArgs, unsigned int dimParams, double const*args, double const*params, double &res ) const
 {
     if (dimArgs != dimParams)
     {
@@ -78,7 +79,7 @@ int Problem_0::GoalFunctionCalculate_0(unsigned int dimArgs, unsigned int dimPar
         return ERR_DIMENSIONS_MISMATCH;
     }
     res = 0;
-    for(size_t i = 0; i < dim; i++)
+    for(size_t i = 0; i < dimArgs; i++)
     {
         res += args[i] * params[i];
     }
@@ -87,12 +88,12 @@ int Problem_0::GoalFunctionCalculate_0(unsigned int dimArgs, unsigned int dimPar
 
 int Problem_0::getArgsDim(size_t& dim) const
 {
-    dim = m_args->getDim();
+    dim = m_dimArgs;
     return ERR_OK;
 }
 int Problem_0::getParamsDim(size_t& dim) const
 {
-    dim = m_params->getDim();
+    dim = m_dimParams;
     return ERR_OK;
 }
 
@@ -114,7 +115,7 @@ int Problem_0::goalFunction(const IVector *args, const IVector *params, double &
         return ERR_DIMENSIONS_MISMATCH;
     }*/
     size_t dimArgs, dimParams;
-    double argsClone, paramsClone;
+    double const *argsClone = 0, *paramsClone = 0;
     int errType;
     if ((errType = args->getCoordsPtr(dimArgs, argsClone)) != ERR_OK)
     {
@@ -231,7 +232,7 @@ int Problem_0::derivativeGoalFunctionCalculate_Order1_0(size_t idx, IProblem::De
             LOG("ERR: Index out of range");
             return ERR_OUT_OF_RANGE;
         }
-        int errType;
+
         if ((errType = args->getCoord(idx, value)) != ERR_OK)
         {
             LOG("ERR: Failed to get coord");
@@ -320,7 +321,7 @@ int Problem_0::derivativeGoalFunctionByParams(size_t order, size_t idx, IProblem
     return ERR_OK;
 }
 
-Problem_0::Problem_0(): m_dimArgs(0), m_dimParams(0), m_args(nullptr), m_params(nullptr)
+Problem_0::Problem_0(): m_dimArgs(2), m_dimParams(2), m_args(nullptr), m_params(nullptr)
 {}
 
 Problem_0::~Problem_0() {
@@ -365,22 +366,22 @@ Brocker_0::~Brocker_0()
 }
 
 extern "C" {
-SHARED_EXPORT void* getBrocker() {
-    Problem_0 *problem = new (std::nothrow) Problem_0();
+    SHARED_EXPORT void* getBrocker() {
+        Problem_0 *problem = new (std::nothrow) Problem_0();
 
-    if (!problem) {
-        LOG("ERR: Not enough memory");
-        return nullptr;
+        if (!problem) {
+            LOG("ERR: Not enough memory");
+            return nullptr;
+        }
+
+        Brocker_0 *brocker = new (std::nothrow) Brocker_0(problem);
+
+        if (!brocker) {
+            LOG("ERR: Not enough memory");
+            delete problem;
+            return nullptr;
+        }
+
+        return brocker;
     }
-
-    Brocker_0 *brocker = new (std::nothrow) Brocker_0(problem);
-
-    if (!brocker) {
-        LOG("ERR: Not enough memory");
-        delete problem;
-        return nullptr;
-    }
-
-    return brocker;
-}
 }

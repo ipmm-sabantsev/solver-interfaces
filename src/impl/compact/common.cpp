@@ -47,7 +47,7 @@ namespace /* PIMP_NAMESPACE */ {
       LOG_RET("Failed to get step coordinates", ERR_ANY_OTHER);
 
     step_out = step_in->clone();
-    if (step_out == nullptr)
+    if (step_out == NULL)
       LOG_RET("Failed to clone step_in", ERR_ANY_OTHER);
 
     for (unsigned int i = 0; i < stepDim; ++i)

@@ -3,8 +3,11 @@
 
 #include <QScopedPointer>
 #include <IVector.h>
+//#include "vector.h"
 
 namespace  {
+//  int getBound(const IVector* const begin, const IVector* const end,
+//             IVector*& bound, bool left);
   int absVector(const IVector* const step_in, IVector*& step_out);
   int leftBound(const IVector* const begin, const IVector* const end,
                 IVector*& bound);

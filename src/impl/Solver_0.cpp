@@ -12,6 +12,9 @@
 #include <QString>
 #include <QStringList>
 #include <QScopedPointer>
+//#include "solver.h"
+//#include "vector.h"
+//#include "compact.h"
 
 #pragma warning(push)
 #pragma warning(disable: 4100)
@@ -19,52 +22,53 @@
   #include "ISolver.h"
   #include "IProblem.h"
   #include "ICompact.h"
-  #include <logging.h>
+  #include "logging.h"
 #pragma warning(pop)
 
 namespace {
-  class Solver_0 : public ISolver {
-  public:
-    int getId() const override;
+class Solver_0 : public ISolver {
+public:
+  int getId() const;
 
-    int setParams(IVector const* params) override;
-    int setParams(QString& str) override;
-    int setProblem(IProblem* problem) override;
-    int solve() override;
-    int getSolution(IVector*& vec) const override;
-    int getQml(QUrl& qml) const override;
+  int setParams(IVector const* params);
+  int setParams(QString& str);
+  int setProblem(IProblem* problem);
+  int solve();
+  int getSolution(IVector*& vec) const;
+  int getQml(QUrl& qml) const;
 
-    Solver_0();
-    ~Solver_0() override;
+  Solver_0();
+  ~Solver_0();
 
-  private:
-    int doSolveByArgs();
-    int doSolveByParams();
-    int doStep(double alpha, double lam, IVector* grad, bool byArgs);
-    int getGrad(IVector*& res, bool byArgs);
+private:
+  int doSolveByArgs();
+  int doSolveByParams();
+  int doStep(double alpha, double lam, IVector* grad, bool byArgs);
+  int getGrad(IVector*& res, bool byArgs);
 
-    QScopedPointer<IVector>  m_args;
-    QScopedPointer<IVector>  m_params;
-    QScopedPointer<IVector>  m_prev;
-    QScopedPointer<IVector>  m_curr;
-    QScopedPointer<ICompact> m_compact;
-    IProblem* m_problem;
+  QScopedPointer<IVector>  m_args;
+  QScopedPointer<IVector>  m_params;
+  QScopedPointer<IVector>  m_prev;
+  QScopedPointer<IVector>  m_curr;
+  QScopedPointer<ICompact> m_compact;
+  IProblem* m_problem;
 
-    bool solveByArgs;
-    double eps;
-  };
+  bool solveByArgs;
+  double eps;
+};
+
 
   class Brocker_1 : public IBrocker {
   public:
-    int getId() const override;
+    int getId() const;
 
-    bool canCastTo(Type type) const override;
-    void* getInterfaceImpl(Type type) const override;
+    bool canCastTo(Type type) const;
+    void* getInterfaceImpl(Type type) const;
 
-    int release() override;
+    int release();
 
     Brocker_1(Solver_0* solver);
-    ~Brocker_1() override;
+    ~Brocker_1();
 
   private:
     Solver_0* m_solver;
@@ -72,9 +76,9 @@ namespace {
 }
 
 Solver_0::Solver_0() :
-  m_args(nullptr),    m_params(nullptr),
-  m_prev(nullptr),    m_curr(nullptr),
-  m_compact(nullptr), m_problem(nullptr)
+  m_args(NULL),    m_params(NULL),
+  m_prev(NULL),    m_curr(NULL),
+  m_compact(NULL), m_problem(NULL)
 {
 
 }
@@ -147,7 +151,7 @@ int Solver_0::setParams(IVector const* solverParams)
     paramsDim = static_cast<size_t>(round(coords[1]));
   }
 
-  double eps = coords[2];
+  eps = coords[2];
   if (eps <= 0)
     LOG_RET("Negative epsilon", ERR_WRONG_ARG);
 
@@ -163,6 +167,7 @@ int Solver_0::setParams(IVector const* solverParams)
     LOG_RET("Dimension mismatch", ERR_WRONG_PROBLEM);
   dim = solveByArgs ? argsDim : paramsDim;
 
+  //IVector* args = IVector::createVector(argsDim, (coords + 4));
   IVector* args = IVector::createVector(argsDim, (coords + 4));
   if (!args)
     LOG_RET("Not enough memory", ERR_MEMORY_ALLOCATION);
@@ -181,7 +186,8 @@ int Solver_0::setParams(IVector const* solverParams)
   if (!end)
     LOG_RET("Not enough memory", ERR_MEMORY_ALLOCATION);
 
-  ICompact* compact = ICompact::createCompact(begin.data(), end.data());
+  //ICompact * compact = ICompact::createCompact(begin.data(), end.data());
+  ICompact * compact = ICompact::createCompact(begin.data(), end.data());
   if (!compact)
     LOG_RET("Not enough memory", ERR_MEMORY_ALLOCATION);
 
@@ -195,15 +201,7 @@ int Solver_0::setParams(IVector const* solverParams)
 
 int Solver_0::setParams(QString& str)
 {
-  QStringList strings = str.split(" ");
-  QStringList params;
-  for (QString it : strings) {
-    QStringList splitStr = it.split(":");
-    if (splitStr.count() != 2)
-      LOG_RET("Wrong number of params in string", ERR_WRONG_ARG);
-
-    params.append(it.split(":").at(1));
-  }
+  QStringList params = str.split(" ");
 
   QVector<double> paramsAsArray(params.size());
   for (int i = 0; i < params.size(); i++) {
@@ -234,11 +232,10 @@ int Solver_0::doStep(double alpha, double lam, IVector* grad, bool byArgs)
     if (!tmpS)
       LOG_RET("Can't subtract", ERR_ANY_OTHER);
 
-    QScopedPointer<IVector> prS; {
-      IVector* prS_data;
-      if (m_compact->getNearestNeighbor(tmpS.data(), prS_data) != ERR_OK)
-        LOG_RET("Can't get nearest neighbor", ERR_ANY_OTHER);
-    }
+    IVector* prS_data;
+    if (m_compact->getNearestNeighbor(tmpS.data(), prS_data) != ERR_OK)
+      LOG_RET("Can't get nearest neighbor", ERR_ANY_OTHER);
+    QScopedPointer<IVector> prS(prS_data);
 
     double resS, resC;
     if (byArgs) {
@@ -258,7 +255,7 @@ int Solver_0::doStep(double alpha, double lam, IVector* grad, bool byArgs)
 
     if (resS <= resC) {
       m_prev.swap(m_curr);
-      m_curr.reset(prS.data());
+      m_curr.reset(prS.data()->clone());
       break;
     } else {
       alpha *= lam;
@@ -412,7 +409,7 @@ bool Brocker_1::canCastTo(Type type) const
 
 void* Brocker_1::getInterfaceImpl(Type type) const
 {
-  return type == IBrocker::SOLVER ? m_solver : nullptr;
+  return type == IBrocker::SOLVER ? m_solver : NULL;
 }
 
 int Brocker_1::release()
@@ -435,15 +432,15 @@ Brocker_1::~Brocker_1()
 
 extern "C" {
   SHARED_EXPORT void* getBrocker() {
-    QScopedPointer<Solver_0> solver(new (std::nothrow) Solver_0());
+    Solver_0 * solver = new (std::nothrow) Solver_0();
 
     if (!solver)
-      LOG_RET("Not enough memory", nullptr);
+      LOG_RET("Not enough memory", NULL);
 
-    Brocker_1* brocker = new (std::nothrow) Brocker_1(solver.data());
+    Brocker_1 * brocker = new (std::nothrow) Brocker_1(solver);
 
     if (!brocker)
-      LOG_RET("Not enough memory", nullptr);
+      LOG_RET("Not enough memory", NULL);
 
     return brocker;
   }

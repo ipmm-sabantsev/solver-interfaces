@@ -16,3 +16,5 @@ CONFIG(debug, debug|release) {
 } else {
   DBG_RLS_SWITCH = release
 }
+
+QMAKE_CFLAGS += -g
